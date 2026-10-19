@@ -29,6 +29,7 @@ import {
   Pressable,
   RefreshControl,
   ScrollView,
+  StyleSheet,
   View,
 } from "react-native";
 import { useQuery } from "@tanstack/react-query";
@@ -113,7 +114,7 @@ export default function PinsPage() {
     >
       {pins.map((pin, idx) => (
         <View key={pin.id}>
-          {idx > 0 ? <View className="h-px bg-border ml-4" /> : null}
+          {idx > 0 ? <View className="bg-border ml-4" style={{ height: StyleSheet.hairlineWidth }} /> : null}
           <PinRow pin={pin} wsId={wsId} wsSlug={wsSlug} />
         </View>
       ))}

@@ -153,23 +153,20 @@ export function CommentCard({
 
   return (
     <View className="px-4">
-      <View className="rounded-xl" style={continuousCorners}>
-        {/* Bubble uses `surface-1` (L 98%) — extremely subtle elevation
-         *  above the page, visible mostly through the rounded edge rather
-         *  than the fill (iOS settings cell feel; see Refactoring UI #4
-         *  "cards subtle from page"). Internal markdown elements (table
-         *  headers / code blocks via markdown-style.ts) use `surface-2`
-         *  (L 90%), 8% darker than the bubble — well over the 5%
-         *  perceptibility threshold so the inner box is clearly framed.
-         *  Border (L 84%) adds 6% on top for the outline. See global.css
-         *  for the full 5-tier elevation scale.
+      <View className="rounded-2xl" style={continuousCorners}>
+        {/* Calm UI: the bubble is a soft rounded block on `muted` (warm
+         *  #f5f2ef in light, #2f2f2f in dark) with no outline, like a chat
+         *  bubble. Internal markdown elements (table headers / code blocks
+         *  via markdown-style.ts) use `surface-2`, one tonal step further
+         *  from the page than `muted`, so the inner box stays framed. See
+         *  global.css for the surface ladder.
          *
          *  Resolved-and-expanded path dims the bubble to 70% so the
          *  "this is settled" signal persists even while reading the
          *  body — mirrors web's muted resolved card visual. */}
         <View
           className={cn(
-            "bg-surface-1 rounded-xl px-4 py-3 gap-3 border-2 border-transparent transition-colors",
+            "bg-muted rounded-2xl px-4 py-3 gap-3 border-2 border-transparent transition-colors",
             resolved && "opacity-70",
             isHighlighted && "border-primary/30",
             isSelectingHere && "bg-primary/5 border-primary/30",
@@ -220,7 +217,7 @@ export function CommentCard({
  * Mirrors web's `<ResolvedThreadBar>` (`packages/views/issues/components/
  * resolved-thread-bar.tsx`): checkmark + N participant authors + reply
  * count + chevron. On mobile we drop the dedicated <Card> chrome and use
- * the same `bg-surface-1` bubble so the resolved bar reads as the same
+ * the same `bg-muted` bubble so the resolved bar reads as the same
  * "row" rhythm as the full card it stands in for.
  */
 function ResolvedThreadBar({
@@ -272,7 +269,7 @@ function ResolvedThreadBar({
     <View className="px-4">
       <Pressable
         onPress={onExpand}
-        className="flex-row items-center gap-2.5 px-4 py-3 rounded-xl bg-surface-1 active:opacity-70"
+        className="flex-row items-center gap-2.5 px-4 py-3 rounded-2xl bg-muted active:opacity-70"
         style={continuousCorners}
         accessibilityRole="button"
         accessibilityLabel={t(
@@ -343,7 +340,7 @@ function ResolvedIndicator({
 
 /**
  * Animated highlight overlay for a root comment bubble. Sits absolute-
- * positioned over the parent <View className="rounded-xl">, no pointer
+ * positioned over the parent <View className="rounded-2xl">, no pointer
  * capture (long-press still works through it). Border + background wash
  * — equivalent to web's `ring-2 ring-brand/50 bg-brand/5`.
  *
@@ -373,7 +370,7 @@ function RootHighlightOverlay({ active }: { active: boolean }) {
   return (
     <Animated.View
       pointerEvents="none"
-      className="absolute inset-0 rounded-xl border-2 border-brand/50 bg-brand/5"
+      className="absolute inset-0 rounded-2xl border-2 border-brand/50 bg-brand/5"
       style={[continuousCorners, style]}
     />
   );

@@ -21,7 +21,7 @@
  * after the parity-critical scope tabs land.
  */
 import { useMemo } from "react";
-import { Pressable, SectionList, View } from "react-native";
+import { Pressable, SectionList, StyleSheet, View } from "react-native";
 import { useQuery } from "@tanstack/react-query";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -171,7 +171,7 @@ export default function IssuesPage() {
           keyExtractor={(item) => item.id}
           stickySectionHeadersEnabled={false}
           ItemSeparatorComponent={() => (
-            <View className="h-px bg-border ml-4" />
+            <View className="bg-border ml-[46px]" style={{ height: StyleSheet.hairlineWidth }} />
           )}
           renderSectionHeader={({ section }) => (
             <SectionHeader
