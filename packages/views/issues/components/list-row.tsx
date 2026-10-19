@@ -1,6 +1,7 @@
 "use client";
 
 import { memo, type Ref } from "react";
+import { Check } from "lucide-react";
 import { useSortable, defaultAnimateLayoutChanges } from "@dnd-kit/sortable";
 import type { AnimateLayoutChanges } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -17,8 +18,6 @@ import { useViewStore } from "@multica/core/issues/stores/view-store-context";
 import { useWorkspaceId } from "@multica/core/hooks";
 import { propertyListOptions } from "@multica/core/properties";
 import { CustomPropertyValueDisplay } from "./pickers/custom-property-picker";
-import { ProjectIcon } from "../../projects/components/project-icon";
-import { PriorityIcon } from "./priority-icon";
 import { ProgressRing } from "./progress-ring";
 import { IssueActionsContextMenu } from "../actions";
 import { LabelChip } from "../../labels/label-chip";
@@ -94,20 +93,29 @@ function ListRowContent({
         data-peeked={peeked ? "" : undefined}
         style={containerStyle}
         {...containerProps}
-        className={`group/row flex h-[var(--issue-row-height)] items-center gap-2 px-4 text-body transition-colors ${
+        className={`group/row flex h-[var(--issue-row-height)] items-center gap-3 border-b border-border px-5 text-body-lg transition-colors ${
           selected
             ? "bg-surface-selected hover:not-data-[popup-open]:bg-surface-selected data-[popup-open]:bg-surface-selected"
             : "hover:not-data-[popup-open]:bg-surface-hover data-[popup-open]:bg-surface-hover"
         } ${PEEKED_ROW_CLASS} ${isDragging ? "opacity-30" : ""}`}
       >
         <div
-          className="relative flex shrink-0 items-center justify-center w-4 h-4"
+          className="relative flex shrink-0 items-center justify-center size-[18px]"
           {...checkboxProps}
         >
-          {storeProperties.priority && issue.priority !== "none" && (
-            <PriorityIcon
-              priority={issue.priority}
-              className={selected ? "hidden" : "group-hover/row:hidden"}
+          {/* Calm UI: Todoist-style round marker, tinted by priority. */}
+          {issue.status === "done" ? (
+            <span
+              aria-hidden
+              className={`flex size-[18px] items-center justify-center rounded-full bg-success text-white ${selected ? "hidden" : "group-hover/row:hidden"}`}
+            >
+              <Check className="size-3" strokeWidth={3} />
+            </span>
+          ) : (
+            <span
+              aria-hidden
+              className={`size-[18px] rounded-full border-2 ${selected ? "hidden" : "group-hover/row:hidden"}`}
+              style={priorityRing(storeProperties.priority ? issue.priority : "none")}
             />
           )}
           <input
@@ -125,13 +133,13 @@ function ListRowContent({
           className={`flex flex-1 items-center gap-2 min-w-0 ${isDragging ? "pointer-events-none" : ""}`}
           {...peekLinkProps}
         >
-          <span className="min-w-16 shrink-0 text-caption text-muted-foreground">
-            {issue.identifier}
-          </span>
           <IssueAgentActivityIndicator issueId={issue.id} />
 
           <span className="flex min-w-0 flex-1 items-center gap-1.5">
             <span className="truncate">{issue.title}</span>
+            <span className="shrink-0 text-caption text-muted-foreground">
+              {issue.identifier}
+            </span>
             {/* Keep custom names visible when this row appears outside a status section. */}
             <CustomStatusChip status={issue.status} className="shrink-0" />
             <IssueDuplicateOfMarker issue={issue} insideLink />
@@ -170,8 +178,8 @@ function ListRowContent({
             )}
           </span>
           {showProject && (
-            <span className="inline-flex shrink-0 items-center gap-1 text-caption text-muted-foreground max-w-[140px]">
-              <ProjectIcon project={project} size="sm" />
+            <span className="inline-flex shrink-0 items-center gap-1.5 text-caption text-muted-foreground max-w-[160px]">
+              <span className="size-2 shrink-0 rounded-full bg-muted-foreground/40" />
               <span className="truncate">{project!.title}</span>
             </span>
           )}
@@ -197,6 +205,16 @@ function ListRowContent({
       </div>
     </IssueActionsContextMenu>
   );
+}
+
+// Calm UI: Todoist priority hues (p1 red, p2 orange, p3 blue, p4 grey).
+const PRIORITY_RING: Record<string, { borderColor: string; background: string }> = {
+  urgent: { borderColor: "#d1453b", background: "rgb(209 69 59 / 0.10)" },
+  high: { borderColor: "#eb8909", background: "rgb(235 137 9 / 0.10)" },
+  medium: { borderColor: "#246fe0", background: "rgb(36 111 224 / 0.10)" },
+};
+function priorityRing(priority: string) {
+  return PRIORITY_RING[priority] ?? { borderColor: "var(--color-faint-foreground)", background: "transparent" };
 }
 
 export const ListRow = memo(function ListRow({

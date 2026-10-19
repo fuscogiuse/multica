@@ -1,4 +1,6 @@
-/* Multica design tokens — shared across Web + Desktop */
+/* Multica design tokens — shared across Web + Desktop
+   Calm UI fork: Todoist-inspired palette (warm off-white shell, #dc4c3e red
+   primary, Todoist priority hues for success/warning/info). */
 
 @theme inline {
     --font-heading: var(--font-sans);
@@ -146,15 +148,15 @@
     /* Surface system: the app shell is the quiet outer frame; the page canvas
        is where lists, boards, and conversations live; surfaces are reserved
        for bounded content groups; raised surfaces are ephemeral overlays. */
-    --app-shell: oklch(0.964435 0.001327 286.375);
-    --page-canvas: oklch(0.988087 0 0);
-    --surface: oklch(1 0 0);
-    --surface-foreground: oklch(0.141 0.005 285.823);
-    --surface-raised: oklch(1 0 0);
-    --surface-hover: oklch(0.967 0.001 286.375);
-    --surface-selected: oklch(0.95 0.002 286.375);
-    --surface-selected-foreground: oklch(0.141 0.005 285.823);
-    --surface-border: oklch(0.92 0.004 286.32);
+    --app-shell: #fcfaf8;
+    --page-canvas: #ffffff;
+    --surface: #ffffff;
+    --surface-foreground: #202020;
+    --surface-raised: #ffffff;
+    --surface-hover: #f5f2ef;
+    --surface-selected: #ffefe5;
+    --surface-selected-foreground: #202020;
+    --surface-border: #ebe8e4;
     --surface-shadow: 0 1px 2px rgb(15 23 42 / 0.04), 0 1px 1px rgb(15 23 42 / 0.03);
     --floating-shadow: 0 16px 40px rgb(15 23 42 / 0.14), 0 3px 10px rgb(15 23 42 / 0.08);
 
@@ -174,16 +176,16 @@
        sheets), which keep --floating-shadow. */
     --menu-shadow: 0 8px 24px rgb(15 23 42 / 0.08), 0 2px 6px rgb(15 23 42 / 0.05);
     --background: var(--page-canvas);
-    --foreground: oklch(0.141 0.005 285.823);
+    --foreground: #202020;
     --card: var(--surface);
-    --card-foreground: oklch(0.141 0.005 285.823);
+    --card-foreground: #202020;
     --popover: var(--surface-raised);
-    --popover-foreground: oklch(0.141 0.005 285.823);
-    --primary: oklch(0.21 0.006 285.885);
-    --primary-foreground: oklch(0.985 0 0);
-    --secondary: oklch(0.967 0.001 286.375);
-    --secondary-foreground: oklch(0.21 0.006 285.885);
-    --muted: oklch(0.967 0.001 286.375);
+    --popover-foreground: #202020;
+    --primary: #dc4c3e;
+    --primary-foreground: #ffffff;
+    --secondary: #f5f2ef;
+    --secondary-foreground: #202020;
+    --muted: #f5f2ef;
     /* Lightness is pinned by WCAG AA, not by taste: muted text sits on every
        light surface we have, and the darkest of them — --sidebar-accent, the
        nav hover state — is the binding constraint. At the old 0.552 that pair
@@ -191,7 +193,7 @@
        sidebar / sidebar-accent / muted / surface-selected / surface, with the
        worst case at 4.88:1. Raise it and the nav labels fail again. Hue and
        chroma are unchanged so the neutral ramp keeps its cast. */
-    --muted-foreground: oklch(0.505 0.016 285.938);
+    --muted-foreground: #666666;
     /* The quiet step below muted, for marks that are not text: disclosure
        chevrons, separator glyphs, the em dash standing in for an empty cell,
        the large icon in an empty state. It exists because the alternative
@@ -203,13 +205,13 @@
        for text: text has one floor, --muted-foreground, and there is no room
        for a third readable step (AA caps a lighter text tone at L 0.523 here,
        0.018 away from muted — a difference no one can see). */
-    --faint-foreground: oklch(0.606 0.016 285.938);
-    --accent: oklch(0.967 0.001 286.375);
-    --accent-foreground: oklch(0.21 0.006 285.885);
-    --destructive: oklch(0.577 0.245 27.325);
-    --border: oklch(0.945 0.003 286.32);
-    --input: oklch(0.92 0.004 286.32);
-    --ring: oklch(0.705 0.015 286.067);
+    --faint-foreground: #8c8c8c;
+    --accent: #f5f2ef;
+    --accent-foreground: #202020;
+    --destructive: #d1453b;
+    --border: #f0eeeb;
+    --input: #e5e2de;
+    --ring: rgb(220 76 62 / 0.45);
     /* Brand-derived blue gradient (h=255 = brand hue). chart-1 equals brand
        so the most important series visually anchors to the product colour;
        chart-2..5 step lighter + less saturated so a stacked bar reads
@@ -220,21 +222,21 @@
     --chart-3: oklch(0.76 0.10 255);
     --chart-4: oklch(0.85 0.06 255);
     --chart-5: oklch(0.92 0.03 255);
-    --radius: 0.5rem;
-    --issue-row-height: 36px;
-    --sidebar: oklch(0.964435 0.001327 286.375);
-    --sidebar-foreground: oklch(0.141 0.005 285.823);
-    --sidebar-primary: oklch(0.21 0.006 285.885);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.935 0.003 286.375);
-    --sidebar-accent-foreground: oklch(0.21 0.006 285.885);
-    --sidebar-border: oklch(0.92 0.004 286.32);
-    --sidebar-ring: oklch(0.705 0.015 286.067);
-    --brand: oklch(0.56079497 0.19449888 256.41258418);
-    --brand-foreground: oklch(0.985 0 0);
-    --success: oklch(0.55 0.16 145);
-    --warning: oklch(0.75 0.16 85);
-    --info: oklch(0.55 0.18 250);
+    --radius: 0.625rem;
+    --issue-row-height: 44px;
+    --sidebar: #fcfaf8;
+    --sidebar-foreground: #202020;
+    --sidebar-primary: #dc4c3e;
+    --sidebar-primary-foreground: #ffffff;
+    --sidebar-accent: #f2efed;
+    --sidebar-accent-foreground: #202020;
+    --sidebar-border: #ebe8e4;
+    --sidebar-ring: rgb(220 76 62 / 0.45);
+    --brand: #dc4c3e;
+    --brand-foreground: #ffffff;
+    --success: #058527;
+    --warning: #eb8909;
+    --info: #246fe0;
     --scrollbar-thumb: oklch(0 0 0 / 10%);
     --scrollbar-thumb-hover: oklch(0 0 0 / 18%);
     --scrollbar-track: transparent;
@@ -248,41 +250,41 @@
 
 .dark {
     color-scheme: dark;
-    --app-shell: oklch(0.155 0.005 285.823);
-    --page-canvas: oklch(0.18 0.005 285.823);
-    --surface: oklch(0.21 0.006 285.885);
-    --surface-foreground: oklch(0.985 0 0);
-    --surface-raised: oklch(0.235 0.007 285.885);
-    --surface-hover: oklch(0.274 0.006 286.033);
-    --surface-selected: oklch(0.3 0.006 286.033);
-    --surface-selected-foreground: oklch(0.985 0 0);
+    --app-shell: #1e1e1e;
+    --page-canvas: #1f1f1f;
+    --surface: #262626;
+    --surface-foreground: #ffffffde;
+    --surface-raised: #2b2b2b;
+    --surface-hover: #2f2f2f;
+    --surface-selected: #3b2724;
+    --surface-selected-foreground: #ffffff;
     --surface-border: oklch(1 0 0 / 10%);
     --surface-shadow: 0 1px 2px rgb(0 0 0 / 0.2), 0 1px 1px rgb(0 0 0 / 0.16);
     --floating-shadow: 0 20px 48px rgb(0 0 0 / 0.46), 0 4px 12px rgb(0 0 0 / 0.28);
     --menu-shadow: 0 10px 28px rgb(0 0 0 / 0.3), 0 2px 8px rgb(0 0 0 / 0.18);
     --background: var(--page-canvas);
-    --foreground: oklch(0.985 0 0);
+    --foreground: #ffffffde;
     --card: var(--surface);
-    --card-foreground: oklch(0.985 0 0);
+    --card-foreground: #ffffffde;
     --popover: var(--surface-raised);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.92 0.004 286.32);
-    --primary-foreground: oklch(0.21 0.006 285.885);
-    --secondary: oklch(0.274 0.006 286.033);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.274 0.006 286.033);
-    --muted-foreground: oklch(0.705 0.015 286.067);
+    --popover-foreground: #ffffffde;
+    --primary: #de4c4a;
+    --primary-foreground: #ffffff;
+    --secondary: #2f2f2f;
+    --secondary-foreground: #ffffffde;
+    --muted: #2f2f2f;
+    --muted-foreground: #a8a8a8;
     /* Same role as light mode, mirrored: fainter means darker here. 0.60 is
        the darkest step still clearing 3:1 on every dark surface, worst case
        --surface-selected at 3.45:1. The step away from muted (0.105 L) matches
        light mode's, so a chevron reads equally quiet in both themes. */
-    --faint-foreground: oklch(0.60 0.015 286.067);
-    --accent: oklch(0.274 0.006 286.033);
-    --accent-foreground: oklch(0.985 0 0);
-    --destructive: oklch(0.704 0.191 22.216);
+    --faint-foreground: #8a8a8a;
+    --accent: #2f2f2f;
+    --accent-foreground: #ffffffde;
+    --destructive: #ff7066;
     --border: oklch(1 0 0 / 6%);
     --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.552 0.016 285.938);
+    --ring: rgb(222 76 74 / 0.5);
     /* Dark mode mirrors light mode's "primary → secondary" gradient on the
        brand hue, but flips the lightness curve: the most important series
        is the brightest (so it pops on the dark background) and trailing
@@ -292,20 +294,20 @@
     --chart-3: oklch(0.52 0.10 255);
     --chart-4: oklch(0.42 0.06 255);
     --chart-5: oklch(0.32 0.03 255);
-    --sidebar: oklch(0.21 0.006 285.885);
-    --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.488 0.243 264.376);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.274 0.006 286.033);
-    --sidebar-accent-foreground: oklch(0.985 0 0);
+    --sidebar: #282828;
+    --sidebar-foreground: #ffffffde;
+    --sidebar-primary: #de4c4a;
+    --sidebar-primary-foreground: #ffffff;
+    --sidebar-accent: #333333;
+    --sidebar-accent-foreground: #ffffffde;
     --sidebar-border: oklch(1 0 0 / 10%);
     --sidebar-ring: oklch(0.552 0.016 285.938);
     /* Brand also paints body-text links; keep it readable on dark surfaces. */
-    --brand: oklch(0.65 0.16 255);
-    --brand-foreground: oklch(0.985 0 0);
-    --success: oklch(0.65 0.15 145);
-    --warning: oklch(0.70 0.16 85);
-    --info: oklch(0.65 0.18 250);
+    --brand: #ff7066;
+    --brand-foreground: #ffffff;
+    --success: #25b84c;
+    --warning: #ff9a14;
+    --info: #5297ff;
     --scrollbar-thumb: oklch(1 0 0 / 8%);
     --scrollbar-thumb-hover: oklch(1 0 0 / 18%);
     --scrollbar-track: transparent;

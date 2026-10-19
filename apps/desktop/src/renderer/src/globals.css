@@ -35,7 +35,7 @@
    would falsely signal alignment guarantees. Browser default fallback handles
    the rare mixed case correctly. */
 :root {
-  --font-sans: "Inter Variable", "Inter", -apple-system, BlinkMacSystemFont,
+  --font-sans: "Figtree Variable", "Figtree", -apple-system, BlinkMacSystemFont,
                "Segoe UI", "PingFang SC", "Microsoft YaHei",
                "Noto Sans CJK SC", "Apple SD Gothic Neo", "Malgun Gothic",
                "Noto Sans CJK KR", sans-serif;
@@ -57,7 +57,7 @@
    `ja` or `ja-<region>` (App.tsx sets `ja-JP`), never unrelated subtags
    such as `jam`. */
 html[lang|="ja"] {
-  --font-sans: "Inter Variable", "Inter", "Hiragino Sans",
+  --font-sans: "Figtree Variable", "Figtree", "Hiragino Sans",
                "Hiragino Kaku Gothic ProN", "Yu Gothic", "YuGothic", "Meiryo",
                "Noto Sans CJK JP", "Noto Sans JP", -apple-system,
                BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei",

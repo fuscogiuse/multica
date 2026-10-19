@@ -18,7 +18,6 @@ import { PropertyIcon } from "../../common/property-icon";
 import { useWorkspacePaths } from "@multica/core/paths";
 import { useActorName } from "@multica/core/workspace/hooks";
 import { useLocale, useT, useTimeAgo } from "../../i18n";
-import { ProjectIcon } from "../../projects/components/project-icon";
 import { PriorityIcon } from "./priority-icon";
 import { PriorityPicker, AssigneePicker, StartDatePicker, DueDatePicker } from "./pickers";
 import { useViewStore } from "@multica/core/issues/stores/view-store-context";
@@ -197,44 +196,20 @@ export const BoardCardContent = memo(function BoardCardContent({
   const showRightMeta = !!showStartDate || !!showDueDate || !!showChildProgress || showUpdatedHint;
 
   return (
-    <div className="rounded-lg border-[0.5px] border-surface-border bg-surface py-3 px-2.5 shadow-[var(--surface-shadow)] transition-colors group-hover/card:border-foreground/15 group-hover/card:bg-surface-hover group-data-[popup-open]/card:border-foreground/15 group-data-[popup-open]/card:bg-surface-hover group-data-[peeked]/card:ring-2 group-data-[peeked]/card:ring-brand/50">
-      {/* Row 1: priority + identifier (left), agent activity + assignee (right) */}
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-1.5 min-w-0">
-          {priorityIconNode}
-          <p className="text-caption text-muted-foreground truncate">{issue.identifier}</p>
-          <IssueDuplicateOfMarker issue={issue} insideLink />
-        </div>
-        <IssueAgentActivityIndicator issueId={issue.id} />
-      </div>
-
-      {/* Row 2: Title */}
-      <p className="mt-1 text-body font-medium leading-snug line-clamp-2">
-        {issue.title}
-      </p>
-
-      {showDescription && (() => {
-        const preview = descriptionPreview(issue.description!);
-        if (!preview) return null;
-        return (
-          <p className="mt-1 text-caption text-muted-foreground line-clamp-1">
-            {preview}
-          </p>
-        );
-      })()}
-
-      {/* Chip row: status + project + labels + custom property values.
-          The status chip renders only for a CUSTOM status — the column header
-          already names the category. (MUL-6243) */}
-      {(showCustomStatus || showProject || showLabels || cardCustomProperties.length > 0) && (
-        <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
-          <CustomStatusChip status={issue.status} />
+    <div className="rounded-xl bg-surface p-3.5 shadow-[0_1px_2px_rgb(0_0_0/0.08)] transition-shadow group-hover/card:shadow-[0_2px_8px_rgb(0_0_0/0.10)] group-data-[popup-open]/card:shadow-[0_2px_8px_rgb(0_0_0/0.10)] group-data-[peeked]/card:ring-2 group-data-[peeked]/card:ring-brand/50">
+      {/* Calm UI: Trello-style card. Project as a pastel label on top, the
+          title as the main read, identifier + priority demoted to the meta row. */}
+      {(showProject || showCustomStatus || showLabels || cardCustomProperties.length > 0) && (
+        <div className="mb-2 flex items-center gap-1.5 flex-wrap">
           {showProject && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-muted/60 px-1.5 py-0.5 text-micro text-muted-foreground max-w-[160px]">
-              <ProjectIcon project={project} size="sm" />
+            <span
+              className="inline-flex h-[22px] max-w-[180px] items-center gap-1 rounded-md px-2 text-caption font-medium text-[#202020]"
+              style={{ background: projectTint(project!.id) }}
+            >
               <span className="truncate">{project!.title}</span>
             </span>
           )}
+          <CustomStatusChip status={issue.status} />
           {showLabels && labels.slice(0, 2).map((label) => (
             <LabelChip key={label.id} label={label} />
           ))}
@@ -246,7 +221,7 @@ export const BoardCardContent = memo(function BoardCardContent({
           {cardCustomProperties.map((property) => (
             <span
               key={property.id}
-              className="inline-flex max-w-[160px] items-center gap-1 rounded-full bg-muted/60 px-1.5 py-0.5 text-micro text-muted-foreground"
+              className="inline-flex max-w-[160px] items-center gap-1 rounded-md bg-muted px-1.5 py-0.5 text-micro text-muted-foreground"
             >
               <PropertyIcon property={property} className="size-3 text-micro" />
               <CustomPropertyValueDisplay property={property} value={issue.properties?.[property.id]} />
@@ -254,6 +229,29 @@ export const BoardCardContent = memo(function BoardCardContent({
           ))}
         </div>
       )}
+
+      <p className="text-body-lg font-medium leading-snug line-clamp-3">
+        {issue.title}
+      </p>
+
+      {showDescription && (() => {
+        const preview = descriptionPreview(issue.description!);
+        if (!preview) return null;
+        return (
+          <p className="mt-1 text-caption text-muted-foreground line-clamp-2">
+            {preview}
+          </p>
+        );
+      })()}
+
+      <div className="mt-2.5 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5 min-w-0">
+          {priorityIconNode}
+          <p className="text-caption text-muted-foreground truncate">{issue.identifier}</p>
+          <IssueDuplicateOfMarker issue={issue} insideLink />
+        </div>
+        <IssueAgentActivityIndicator issueId={issue.id} />
+      </div>
 
       {/* Meta row: assignee (left), start date, due date, child progress (right) */}
       {showMetaRow && (
@@ -339,6 +337,14 @@ export const BoardCardContent = memo(function BoardCardContent({
     </div>
   );
 });
+
+// Calm UI: soft pastel label per project, stable across renders (hash of id).
+const PROJECT_TINTS = ["#f3e6dc", "#e3ecf5", "#e6f0e8", "#efe8f3", "#f4efdc", "#fbe4e2", "#e2f1f1"];
+function projectTint(id: string): string {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) | 0;
+  return PROJECT_TINTS[Math.abs(h) % PROJECT_TINTS.length]!;
+}
 
 const animateLayoutChanges: AnimateLayoutChanges = (args) => {
   const { isSorting, wasDragging } = args;

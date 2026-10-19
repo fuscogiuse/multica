@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
-import { Inter, Geist_Mono, Source_Serif_4 } from "next/font/google";
+import { Figtree, Geist_Mono, Source_Serif_4 } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@multica/ui/components/ui/sonner";
 import { cn } from "@multica/ui/lib/utils";
@@ -15,9 +15,9 @@ import {
 } from "@/config/runtime-urls";
 import "./globals.css";
 
-// Inter is the Latin UI face. next/font produces a hashed family (`__Inter_xxx`)
+// Figtree is the Latin UI face (calm UI fork; upstream uses Inter). next/font produces a hashed family (`__Inter_xxx`)
 // plus a synthetic size-adjusted fallback face to prevent FOUT layout shift —
-// both are exposed under the `--font-inter` CSS variable.
+// both are exposed under the `--font-ui` CSS variable.
 //
 // The full `--font-sans` stack (Inter + the per-locale CJK fallback chain) is
 // assembled in static CSS in ./globals.css, not here: it must be overridable per
@@ -31,10 +31,10 @@ import "./globals.css";
 // "Managed by runtime", dashboard/squad placeholders) plus every markdown <em> and
 // blockquote rendered as browser-synthesized oblique. Keep in sync with desktop's
 // `@fontsource-variable/inter/wght-italic.css` import.
-const inter = Inter({
+const figtree = Figtree({
   subsets: ["latin"],
   style: ["normal", "italic"],
-  variable: "--font-inter",
+  variable: "--font-ui",
 });
 // Mono font has no explicit CJK fallback: CJK chars in code blocks are inherently
 // non-aligned with a mono grid (Chinese is proportional), so listing CJK fonts
@@ -133,7 +133,7 @@ export default async function RootLayout({
     <html
       lang={HTML_LANG[locale]}
       suppressHydrationWarning
-      className={cn("antialiased font-sans h-full", inter.variable, geistMono.variable, sourceSerif.variable)}
+      className={cn("antialiased font-sans h-full", figtree.variable, geistMono.variable, sourceSerif.variable)}
     >
       <body className="h-full overflow-hidden">
         {/*
