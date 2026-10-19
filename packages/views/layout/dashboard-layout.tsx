@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { SidebarProvider, SidebarInset } from "@multica/ui/components/ui/sidebar";
+import { cn } from "@multica/ui/lib/utils";
 import { ModalRegistry } from "../modals/registry";
 import { SourceBackfillModal } from "../onboarding";
 import { AppSidebar } from "./app-sidebar";
@@ -18,6 +19,15 @@ interface DashboardLayoutProps {
   searchSlot?: ReactNode;
   /** Loading indicator */
   loadingIndicator?: ReactNode;
+  /**
+   * Replaces the default AppSidebar. Lets an app ship its own navigation
+   * chrome while keeping the guard, providers and modal registry.
+   */
+  sidebar?: ReactNode;
+  /** Extra classes for the main inset (the page panel next to the sidebar). */
+  insetClassName?: string;
+  /** Extra classes for the outer shell that holds sidebar and inset. */
+  shellClassName?: string;
 }
 
 export function DashboardLayout({
@@ -25,6 +35,9 @@ export function DashboardLayout({
   extra,
   searchSlot,
   loadingIndicator,
+  sidebar,
+  insetClassName,
+  shellClassName,
 }: DashboardLayoutProps) {
   return (
     <DashboardGuard
@@ -34,11 +47,11 @@ export function DashboardLayout({
         </div>
       }
     >
-      <SidebarProvider className="h-svh bg-app-shell">
+      <SidebarProvider className={cn("h-svh bg-app-shell", shellClassName)}>
         <GlobalShortcuts />
         <WorkspacePresencePrefetch />
-        <AppSidebar searchSlot={searchSlot} />
-        <SidebarInset className="relative overflow-hidden">
+        {sidebar ?? <AppSidebar searchSlot={searchSlot} />}
+        <SidebarInset className={cn("relative overflow-hidden", insetClassName)}>
           <NavigationProgress />
           {children}
           <ModalRegistry />
