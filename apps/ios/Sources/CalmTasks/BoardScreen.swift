@@ -54,18 +54,30 @@ struct BoardScreen: View {
 
     // MARK: Header
 
+    private var subtitle: String {
+        let open = issues.filter { resolver.column(for: $0) != nil && resolver.category(for: $0.status) != "done" }.count
+        let area = activeProject.flatMap { store.company(of: $0)?.name }
+        return [area, "\(open) aperti"].compactMap { $0 }.joined(separator: " · ")
+    }
+
     private var header: some View {
-        HStack(spacing: 0) {
-            MenuButton()
-            titleMenu
-                .layoutPriority(1)
-            Spacer(minLength: 4)
-            viewToggle
-            filtersMenu
-            optionsMenu
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 0) {
+                MenuButton()
+                Spacer(minLength: 4)
+                viewToggle
+                filtersMenu
+                optionsMenu
+            }
+            .padding(.horizontal, 8)
+            .frame(height: 44)
+            VStack(alignment: .leading, spacing: 2) {
+                titleMenu
+                Text(subtitle).font(.system(size: 15)).foregroundStyle(Calm.muted)
+            }
+            .padding(.horizontal, 20)
+            .padding(.bottom, 8)
         }
-        .padding(.horizontal, 4)
-        .frame(height: 48)
     }
 
     // MARK: Title: pick the client
@@ -98,12 +110,12 @@ struct BoardScreen: View {
                 }
             }
         } label: {
-            HStack(spacing: 6) {
-                Text(title).font(.system(size: 18, weight: .bold)).lineLimit(1)
-                Image(systemName: "chevron.down").font(.system(size: 10, weight: .semibold)).foregroundStyle(Calm.muted)
+            HStack(spacing: 8) {
+                Text(title).font(.system(size: 30, weight: .heavy)).tracking(-0.4).lineLimit(1)
+                Image(systemName: "chevron.down").font(.system(size: 13, weight: .bold)).foregroundStyle(Calm.muted)
             }
             .foregroundStyle(Calm.ink)
-            .frame(minHeight: 44)
+            .frame(minHeight: 40)
         }
         .accessibilityLabel("Cliente: \(title). Tocca per cambiare.")
     }

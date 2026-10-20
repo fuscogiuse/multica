@@ -10,6 +10,7 @@ struct ListView: View {
     @State private var newTaskColumn: StatusEntry?
     @State private var dateIssue: Issue?
     @State private var deleteIssue: Issue?
+    @State private var mergePair: MergePair?
     /// The client the list belongs to, used for the "Nuovo task" row.
     var project: Project?
     let resolver: BoardResolver
@@ -52,7 +53,15 @@ struct ListView: View {
                             }
                             .listRowInsets(EdgeInsets(top: 0, leading: 12, bottom: 0, trailing: 12))
                             .listRowBackground(Color.white)
-                            .listRowSeparatorTint(Color.black.opacity(0.06))
+                            .listRowSeparator(.hidden)
+                            // Long press and drag a task onto another one to join them.
+                            .draggable(issue.id)
+                            .dropDestination(for: String.self) { ids, _ in
+                                guard let id = ids.first, id != issue.id,
+                                      let source = store.issues.first(where: { $0.id == id }) else { return false }
+                                mergePair = MergePair(source: source, target: issue)
+                                return true
+                            }
                             // Swipe right: done. Swipe left: date, archive, delete, like Mail.
                             .swipeActions(edge: .leading, allowsFullSwipe: true) {
                                 Button { Task { await store.move(issue, to: resolver.doneKey) } } label: {
@@ -93,8 +102,7 @@ struct ListView: View {
                                 .font(.system(size: 11, weight: .semibold))
                                 .foregroundStyle(Calm.muted)
                                 .rotationEffect(.degrees(isFolded ? 0 : 90))
-                            Circle().fill(Calm.statusColor(column)).frame(width: 9, height: 9)
-                            Text(column.name).font(.system(size: 15, weight: .bold)).foregroundStyle(Calm.ink)
+                            Text(column.name).font(.system(size: 15, weight: .bold)).foregroundStyle(Calm.primary)
                             Text("\(items.count)").font(.system(size: 13)).foregroundStyle(Calm.muted)
                             Spacer()
                         }
@@ -114,7 +122,7 @@ struct ListView: View {
         .listStyle(.plain)
         .listSectionSeparator(.hidden)
         .background(Color.white)
-        .environment(\.defaultMinListRowHeight, density == .compact ? 34 : 48)
+        .environment(\.defaultMinListRowHeight, density == .compact ? 38 : 56)
         .scrollContentBackground(.hidden)
         .contentMargins(.bottom, 90, for: .scrollContent)
         .refreshable { await store.refresh() }
@@ -122,6 +130,7 @@ struct ListView: View {
             NewTaskView(project: project, status: column.key)
         }
         .sheet(item: $dateIssue) { issue in DueDateSheet(issue: issue) }
+        .mergeDialog($mergePair)
         .confirmationDialog("Eliminare questo task?", isPresented: Binding(
             get: { deleteIssue != nil }, set: { if !$0 { deleteIssue = nil } }), titleVisibility: .visible) {
             Button("Elimina", role: .destructive) {

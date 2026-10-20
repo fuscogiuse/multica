@@ -50,20 +50,58 @@ struct TaskDetailView: View {
         let resolver = store.resolver(for: project)
         return ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                TextField("Titolo", text: $title, axis: .vertical)
-                    .font(.system(size: 22, weight: .semibold))
-                    .focused($focus, equals: .title)
-                    .onSubmit { saveTitle(issue) }
-                    .submitLabel(.done)
-
-                Text([project?.title, issue.identifier].compactMap { $0 }.joined(separator: " · "))
-                    .font(.footnote).foregroundStyle(Calm.muted)
-
-                FlowLayout(spacing: 8) {
-                    statusMenu(issue, resolver: resolver)
-                    priorityMenu(issue)
-                    dueButton(issue)
+                HStack(alignment: .top, spacing: 14) {
+                    Button { Task { await store.move(issue, to: resolver.doneKey) } } label: {
+                        RoundedRectangle(cornerRadius: 8)
+                            .strokeBorder(Calm.checkbox, lineWidth: 2)
+                            .frame(width: 26, height: 26)
+                            .padding(.top, 4)
+                            .frame(width: 36, height: 40, alignment: .top)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Segna come fatto")
+                    VStack(alignment: .leading, spacing: 4) {
+                        TextField("Titolo", text: $title, axis: .vertical)
+                            .font(.system(size: 24, weight: .bold))
+                            .focused($focus, equals: .title)
+                            .onSubmit { saveTitle(issue) }
+                            .submitLabel(.done)
+                        Text(issue.identifier).font(.system(size: 13)).foregroundStyle(Calm.muted)
+                    }
                 }
+
+                VStack(spacing: 0) {
+                    propertyRow(icon: "folder", label: "Cliente", value: project?.title ?? "Nessuno")
+                    Menu {
+                        ForEach(resolver.columns) { column in
+                            Button(column.name) { Task { await store.move(issue, to: column.key) } }
+                        }
+                    } label: {
+                        propertyRow(icon: "circle.dashed", label: "Stato", value: resolver.name(for: issue.status),
+                                    valueColor: Calm.primary, chevron: true)
+                    }
+                    Button { showDate = true } label: {
+                        propertyRow(icon: "calendar", label: "Scadenza",
+                                    value: issue.dueDay.map { DateText.relative($0) } ?? "Nessuna",
+                                    valueColor: issue.dueDay.map { DateText.isOverdue($0) ? Calm.late : Calm.ink } ?? Calm.muted,
+                                    chevron: true)
+                    }
+                    .buttonStyle(.plain)
+                    .sheet(isPresented: $showDate) { DueDateSheet(issue: issue) }
+                    Menu {
+                        ForEach(Priority.allCases, id: \.self) { priority in
+                            Button(priority.italian) { Task { await store.update(issue, UpdateIssueBody(priority: priority.rawValue)) } }
+                        }
+                    } label: {
+                        propertyRow(icon: "flag", label: "Priorità", value: issue.priorityValue.italian, chevron: true)
+                    }
+                    if issue.assigneeType == "agent" {
+                        propertyRow(icon: "sparkles", label: "Agente",
+                                    value: mentionables.first { $0.id == issue.assigneeId }?.name ?? "Agente")
+                    }
+                }
+                .overlay(alignment: .top) { Rectangle().fill(Calm.line).frame(height: 1) }
 
                 VStack(alignment: .leading, spacing: 6) {
                     HStack {
@@ -97,10 +135,8 @@ struct TaskDetailView: View {
                         }
                         .buttonStyle(.plain)
                     } else {
-                        MarkdownText(source: notes)
-                            .padding(12)
-                            .background(RoundedRectangle(cornerRadius: 12).fill(Color.white))
-                            .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Calm.line))
+                        MarkdownText(source: notes, size: 16)
+                            .padding(.vertical, 4)
                             .contentShape(Rectangle())
                             .onTapGesture { editingNotes = true; focus = .notes }
                     }
@@ -114,9 +150,9 @@ struct TaskDetailView: View {
                                 .font(.system(size: 11, weight: .medium)).foregroundStyle(Calm.muted)
                             MarkdownText(source: comment.content)
                         }
-                        .padding(12)
+                        .padding(14)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(RoundedRectangle(cornerRadius: 12).fill(.white))
+                        .background(RoundedRectangle(cornerRadius: 16).fill(Calm.card))
                     }
                     if !mentionSuggestions.isEmpty {
                         VStack(spacing: 0) {
@@ -142,13 +178,14 @@ struct TaskDetailView: View {
                         .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Calm.line))
                     }
                     HStack {
-                        TextField("Scrivi un commento, @ per menzionare", text: $newComment, axis: .vertical)
+                        TextField("Scrivi un commento, @ per un agente", text: $newComment, axis: .vertical)
                             .focused($focus, equals: .comment)
-                            .padding(.horizontal, 12)
-                            .frame(minHeight: 44)
-                            .background(RoundedRectangle(cornerRadius: 12).fill(.white))
+                            .padding(.horizontal, 18)
+                            .frame(minHeight: 50)
+                            .background(Capsule().fill(Calm.field))
                         Button { Task { await sendComment(issue) } } label: {
-                            Image(systemName: "paperplane.fill").frame(width: 44, height: 44)
+                            Image(systemName: "arrow.up").font(.system(size: 16, weight: .bold)).foregroundStyle(.white)
+                                .frame(width: 40, height: 40).background(Circle().fill(Calm.primary))
                         }
                         .disabled(newComment.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                         .accessibilityLabel("Invia")
@@ -198,6 +235,21 @@ struct TaskDetailView: View {
             }
             .calmPill()
         }
+    }
+
+    private func propertyRow(icon: String, label: String, value: String, valueColor: Color = Calm.ink, chevron: Bool = false) -> some View {
+        HStack(spacing: 14) {
+            Image(systemName: icon).font(.system(size: 16)).foregroundStyle(Calm.muted).frame(width: 22)
+            Text(label).font(.system(size: 16)).foregroundStyle(Calm.muted)
+            Spacer()
+            Text(value).font(.system(size: 16, weight: valueColor == Calm.primary ? .semibold : .regular)).foregroundStyle(valueColor).lineLimit(1)
+            if chevron {
+                Image(systemName: "chevron.up.chevron.down").font(.system(size: 11)).foregroundStyle(Calm.checkbox)
+            }
+        }
+        .frame(minHeight: 50)
+        .overlay(alignment: .bottom) { Rectangle().fill(Calm.line).frame(height: 1) }
+        .contentShape(Rectangle())
     }
 
     private func dueButton(_ issue: Issue) -> some View {

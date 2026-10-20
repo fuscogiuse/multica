@@ -6,6 +6,7 @@ struct SettingsView: View {
     @EnvironmentObject var store: BoardStore
     @State private var confirmSignOut = false
     @AppStorage(Density.storageKey) private var densityRaw = Density.medium.rawValue
+    @AppStorage(Accent.storageKey) private var accentRaw = Accent.blue.rawValue
 
     private var version: String {
         let info = Bundle.main.infoDictionary
@@ -21,6 +22,23 @@ struct SettingsView: View {
                     LabeledContent("Server", value: model.session?.serverURL.host ?? "-")
                     Button("Aggiorna ora") { Task { await store.refresh() } }
                     Button("Esci", role: .destructive) { confirmSignOut = true }
+                }
+                Section("Colore") {
+                    HStack(spacing: 12) {
+                        ForEach(Accent.allCases) { accent in
+                            Button { accentRaw = accent.rawValue } label: {
+                                Circle().fill(accent.color)
+                                    .frame(width: 34, height: 34)
+                                    .overlay(Circle().strokeBorder(Color.white, lineWidth: 3).padding(2).opacity(accentRaw == accent.rawValue ? 1 : 0))
+                                    .overlay(Circle().strokeBorder(accent.color, lineWidth: 2).padding(-3).opacity(accentRaw == accent.rawValue ? 1 : 0))
+                                    .frame(width: 44, height: 44)
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel(accent.name)
+                            .accessibilityAddTraits(accentRaw == accent.rawValue ? .isSelected : [])
+                        }
+                    }
+                    Text("Ora: \(Accent(rawValue: accentRaw)?.name ?? "Blu")").font(.footnote).foregroundStyle(Calm.muted)
                 }
                 Section("Aspetto") {
                     Picker("Lista", selection: $densityRaw) {

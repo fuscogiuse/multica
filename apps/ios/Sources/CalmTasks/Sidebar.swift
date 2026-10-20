@@ -67,16 +67,10 @@ struct SidebarView: View, Equatable {
             header
             ScrollView {
                 VStack(spacing: 2) {
-                    row(icon: "calendar", title: "Oggi", count: store.todayCount, accent: true) { onToday() }
-                    row(icon: "checklist", title: "Tutti i task", count: store.allOpenCount, accent: false) { onScope(.all) }
+                    row(icon: "star.fill", iconColor: Color(hex: 0xF5B301), title: "Oggi", count: store.todayCount, accent: true) { onToday() }
+                    row(icon: "list.bullet", iconColor: Calm.primary, title: "Tutti i task", count: store.allOpenCount, accent: false) { onScope(.all) }
 
-                    Text("Aree")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(Calm.muted)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 12)
-                        .padding(.top, 16)
-                        .padding(.bottom, 4)
+                    Rectangle().fill(Calm.line).frame(height: 1).padding(.horizontal, 10).padding(.vertical, 8)
 
                     ForEach(store.companies) { company in
                         areaRow(id: company.id, name: company.name, colorHex: company.color,
@@ -116,15 +110,13 @@ struct SidebarView: View, Equatable {
     // MARK: Pieces
 
     private var header: some View {
-        HStack(spacing: 10) {
-            RoundedRectangle(cornerRadius: 8).fill(Calm.primary)
-                .frame(width: 30, height: 30)
-                .overlay(Image(systemName: "checkmark").font(.system(size: 14, weight: .bold)).foregroundStyle(.white))
-            Text("Calm Tasks").font(.system(size: 19, weight: .semibold)).foregroundStyle(Calm.ink)
+        HStack {
+            Text("Aree").font(.system(size: 28, weight: .heavy)).tracking(-0.4).foregroundStyle(Calm.ink)
             Spacer()
         }
-        .padding(.horizontal, 16)
-        .frame(height: 56)
+        .padding(.horizontal, 20)
+        .padding(.top, 8)
+        .frame(height: 60)
     }
 
     private var footer: some View {
@@ -139,19 +131,19 @@ struct SidebarView: View, Equatable {
         }
     }
 
-    private func row(icon: String, title: String, count: Int, accent: Bool, action: @escaping () -> Void) -> some View {
+    private func row(icon: String, iconColor: Color, title: String, count: Int, accent: Bool, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            HStack(spacing: 12) {
-                Image(systemName: icon).font(.system(size: 17)).foregroundStyle(Calm.soft).frame(width: 24)
-                Text(title).font(.system(size: 16)).foregroundStyle(Calm.ink)
+            HStack(spacing: 14) {
+                Image(systemName: icon).font(.system(size: 18)).foregroundStyle(iconColor).frame(width: 26)
+                Text(title).font(.system(size: 17, weight: accent ? .semibold : .regular)).foregroundStyle(Calm.ink)
                 Spacer()
                 if count > 0 {
-                    Text("\(count)").font(.system(size: 13, weight: accent ? .semibold : .regular))
-                        .foregroundStyle(accent ? Calm.primary : Calm.muted)
+                    Text("\(count)").font(.system(size: 15)).foregroundStyle(Calm.muted)
                 }
             }
-            .padding(.horizontal, 12)
-            .frame(minHeight: 44)
+            .padding(.horizontal, 10)
+            .frame(minHeight: 50)
+            .background(RoundedRectangle(cornerRadius: 14).fill(accent ? Calm.primary.opacity(0.07) : Color.clear))
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -166,14 +158,17 @@ struct SidebarView: View, Equatable {
         return Button {
             if let scope { onScope(scope) }
         } label: {
-            HStack(spacing: 12) {
-                Circle().fill(colorHex.flatMap { Color(hexString: $0) } ?? Calm.muted).frame(width: 11, height: 11)
-                Text(name).font(.system(size: 16, weight: .semibold)).foregroundStyle(Calm.ink).lineLimit(1)
+            HStack(spacing: 14) {
+                let tone = colorHex.flatMap { Color(hexString: $0) } ?? Calm.muted
+                RoundedRectangle(cornerRadius: 8).fill(tone.opacity(0.14))
+                    .frame(width: 30, height: 30)
+                    .overlay(Text(String(name.prefix(1))).font(.system(size: 14, weight: .bold)).foregroundStyle(tone))
+                Text(name).font(.system(size: 17)).foregroundStyle(Calm.ink).lineLimit(1)
                 Spacer()
-                Text("\(total)").font(.system(size: 13)).foregroundStyle(Calm.muted)
+                Text("\(total)").font(.system(size: 15)).foregroundStyle(Calm.muted)
             }
-            .padding(.horizontal, 12)
-            .frame(minHeight: 46)
+            .padding(.horizontal, 10)
+            .frame(minHeight: 50)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

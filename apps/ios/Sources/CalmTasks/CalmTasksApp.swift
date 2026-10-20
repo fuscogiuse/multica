@@ -23,6 +23,8 @@ struct CalmTasksApp: App {
 
 struct RootView: View {
     @EnvironmentObject var model: AppModel
+    /// Changing the accent rebuilds the screens so every view picks up the new colour.
+    @AppStorage(Accent.storageKey) private var accent = Accent.blue.rawValue
 
     var body: some View {
         switch model.phase {
@@ -30,7 +32,7 @@ struct RootView: View {
             OnboardingView()
         case .ready:
             if let store = model.store {
-                MainTabView().environmentObject(store)
+                MainTabView().environmentObject(store).tint(Calm.primary).id(accent)
             } else {
                 ProgressView()
             }

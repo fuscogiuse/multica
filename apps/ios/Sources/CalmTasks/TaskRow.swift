@@ -1,6 +1,7 @@
 import SwiftUI
 import CalmCore
 
+/// One task in a list, Aria style: rounded square checkbox, title, and a quiet line under it.
 struct TaskRow: View {
     let issue: Issue
     let resolver: BoardResolver
@@ -10,16 +11,20 @@ struct TaskRow: View {
     var showStatus = false
     var onComplete: (() -> Void)?
 
+    private var isDone: Bool { resolver.category(for: issue.status) == "done" }
+
+    private var boxColor: Color {
+        switch issue.priorityValue {
+        case .urgent, .high: return Calm.late
+        default: return Calm.checkbox
+        }
+    }
+
     var body: some View {
-        HStack(spacing: density == .compact ? 8 : 10) {
-            Button {
-                onComplete?()
-            } label: {
-                Circle()
-                    .strokeBorder(Calm.priorityColor(issue.priorityValue), lineWidth: 2)
-                    .background(Circle().fill(Calm.priorityColor(issue.priorityValue).opacity(0.1)))
-                    .frame(width: density == .compact ? 17 : 20, height: density == .compact ? 17 : 20)
-                    .frame(width: density == .compact ? 30 : 34, height: density == .compact ? 34 : 40)
+        HStack(spacing: density == .compact ? 10 : 14) {
+            Button { onComplete?() } label: {
+                checkbox
+                    .frame(width: density == .compact ? 32 : 36, height: density == .compact ? 34 : 44)
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -28,52 +33,66 @@ struct TaskRow: View {
 
             if density == .compact {
                 Text(issue.title)
-                    .font(.system(size: 14))
-                    .foregroundStyle(Calm.ink)
+                    .font(.system(size: 15))
+                    .foregroundStyle(isDone ? Calm.muted : Calm.ink)
+                    .strikethrough(isDone)
                     .lineLimit(1)
                 Spacer(minLength: 4)
-                trailing
+                if let day = issue.dueDay { dueText(day).font(.system(size: 12)) }
             } else {
-                VStack(alignment: .leading, spacing: 1) {
+                VStack(alignment: .leading, spacing: 2) {
                     Text(issue.title)
-                        .font(.system(size: 15))
-                        .foregroundStyle(Calm.ink)
+                        .font(.system(size: 17))
+                        .foregroundStyle(isDone ? Calm.muted : Calm.ink)
+                        .strikethrough(isDone)
                         .lineLimit(1)
-                    HStack(spacing: 6) {
-                        if let projectName {
-                            Text(projectName).foregroundStyle(Calm.muted)
+                    if hasMeta {
+                        HStack(spacing: 0) {
+                            Text(metaPrefix).foregroundStyle(Calm.muted)
+                            if let day = issue.dueDay {
+                                if !metaPrefix.isEmpty { Text(" · ").foregroundStyle(Calm.muted) }
+                                dueText(day)
+                            }
+                            if issue.assigneeType == "agent" {
+                                Text(" · ").foregroundStyle(Calm.muted)
+                                Image(systemName: "sparkles").foregroundStyle(Calm.primary)
+                            }
                         }
-                        if showStatus {
-                            Text(resolver.name(for: issue.status)).foregroundStyle(Calm.muted)
-                        }
-                        if let day = issue.dueDay {
-                            Text(DateText.relative(day))
-                                .foregroundStyle(DateText.isOverdue(day) ? Calm.red : (day == Today.dayString() ? Calm.green : Calm.muted))
-                        }
-                        if issue.assigneeType == "agent" {
-                            Image(systemName: "sparkles").foregroundStyle(Calm.muted)
-                        }
+                        .font(.system(size: 13))
+                        .lineLimit(1)
                     }
-                    .font(.system(size: 11.5))
-                    .lineLimit(1)
                 }
                 Spacer(minLength: 0)
             }
         }
-        .frame(minHeight: density == .compact ? 34 : 48)
+        .frame(minHeight: density == .compact ? 38 : 56)
         .contentShape(Rectangle())
     }
 
+    private var metaPrefix: String {
+        [projectName, showStatus ? resolver.name(for: issue.status) : nil].compactMap { $0 }.joined(separator: " · ")
+    }
+
+    private var hasMeta: Bool { !metaPrefix.isEmpty || issue.dueDay != nil || issue.assigneeType == "agent" }
+
     @ViewBuilder
-    private var trailing: some View {
-        if issue.assigneeType == "agent" {
-            Image(systemName: "sparkles").font(.system(size: 12)).foregroundStyle(Calm.muted)
+    private var checkbox: some View {
+        let size: CGFloat = density == .compact ? 19 : 22
+        if isDone {
+            RoundedRectangle(cornerRadius: 7).fill(Calm.primary)
+                .frame(width: size, height: size)
+                .overlay(Image(systemName: "checkmark").font(.system(size: size * 0.55, weight: .bold)).foregroundStyle(.white))
+        } else {
+            RoundedRectangle(cornerRadius: 7).strokeBorder(boxColor, lineWidth: 1.8)
+                .frame(width: size, height: size)
         }
-        if let day = issue.dueDay {
-            Text(DateText.relative(day))
-                .font(.system(size: 12))
-                .foregroundStyle(DateText.isOverdue(day) ? Calm.red : (day == Today.dayString() ? Calm.green : Calm.muted))
-        }
+    }
+
+    private func dueText(_ day: String) -> Text {
+        let today = Today.dayString()
+        if day < today { return Text(DateText.relative(day)).foregroundColor(Calm.late) }
+        if day == today { return Text("Oggi").foregroundColor(Calm.primary) }
+        return Text(DateText.relative(day)).foregroundColor(Calm.muted)
     }
 }
 

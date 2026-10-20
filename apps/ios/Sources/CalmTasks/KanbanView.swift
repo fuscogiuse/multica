@@ -9,6 +9,7 @@ struct KanbanView: View {
 
     @AppStorage(Collapsed.storageKey) private var collapsedRaw = ""
     @State private var targeted: String?
+    @State private var mergePair: MergePair?
 
     private func toggle(_ key: String) {
         withAnimation(.easeInOut(duration: 0.2)) { collapsedRaw = Collapsed.toggled(key, in: collapsedRaw) }
@@ -35,6 +36,7 @@ struct KanbanView: View {
             }
             .scrollTargetBehavior(.viewAligned)
         }
+        .mergeDialog($mergePair)
     }
 
     private func columnView(_ column: StatusEntry, items: [Issue], height: CGFloat) -> some View {
@@ -42,8 +44,7 @@ struct KanbanView: View {
             Button { toggle(column.key) } label: {
                 HStack(spacing: 8) {
                     Image(systemName: "chevron.down").font(.system(size: 11, weight: .semibold)).foregroundStyle(Calm.muted)
-                    Circle().fill(Calm.statusColor(column)).frame(width: 9, height: 9)
-                    Text(column.name).font(.system(size: 15, weight: .semibold)).foregroundStyle(Calm.ink)
+                    Text(column.name).font(.system(size: 16, weight: .bold)).foregroundStyle(Calm.ink)
                     Spacer()
                     Text("\(items.count)").font(.system(size: 13)).foregroundStyle(Calm.muted)
                 }
@@ -55,25 +56,33 @@ struct KanbanView: View {
             .accessibilityLabel("Comprimi \(column.name)")
 
             ScrollView {
-                LazyVStack(spacing: 8) {
+                LazyVStack(spacing: 12) {
                     ForEach(items) { issue in
                         NavigationLink(value: issue) { card(issue) }
                             .buttonStyle(.plain)
                             .draggable(issue.id)
                             .contextMenu { MoveMenu(issue: issue, resolver: resolver) }
+                            // A card dropped on another card asks to join the two.
+                            .dropDestination(for: String.self) { ids, _ in
+                                guard let id = ids.first, id != issue.id,
+                                      let source = store.issues.first(where: { $0.id == id }) else { return false }
+                                mergePair = MergePair(source: source, target: issue)
+                                return true
+                            }
                     }
                     if items.isEmpty {
                         Text("Trascina qui un task")
-                            .font(.footnote).foregroundStyle(Calm.muted)
-                            .frame(maxWidth: .infinity, minHeight: 60)
+                            .font(.system(size: 14)).foregroundStyle(Calm.muted)
+                            .frame(maxWidth: .infinity, minHeight: 52)
+                            .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(Calm.checkbox, style: StrokeStyle(lineWidth: 1.5, dash: [5, 4])))
                     }
                 }
                 .padding(.bottom, 90)
             }
         }
-        .padding(10)
+        .padding(.vertical, 6)
         .frame(maxHeight: .infinity, alignment: .top)
-        .background(RoundedRectangle(cornerRadius: 14).fill(targeted == column.key ? Calm.primary.opacity(0.08) : Calm.sand))
+        .background(RoundedRectangle(cornerRadius: 18).fill(targeted == column.key ? Calm.primary.opacity(0.06) : Color.white))
         .dropDestination(for: String.self) { ids, _ in
             guard let id = ids.first, let issue = store.issues.first(where: { $0.id == id }) else { return false }
             Task { await store.move(issue, to: column.key) }
@@ -116,33 +125,33 @@ struct KanbanView: View {
     }
 
     private func card(_ issue: Issue) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            if let project = store.project(issue.projectId) {
-                Text(project.title).font(.system(size: 11, weight: .medium)).foregroundStyle(Calm.muted)
-            }
+        VStack(alignment: .leading, spacing: 10) {
             Text(issue.title)
-                .font(.system(size: 15))
+                .font(.system(size: 16, weight: .semibold))
                 .foregroundStyle(Calm.ink)
                 .multilineTextAlignment(.leading)
+                .lineSpacing(2)
             HStack(spacing: 8) {
-                Text(issue.identifier).font(.system(size: 11)).foregroundStyle(Calm.muted)
                 if let day = issue.dueDay {
-                    Text(DateText.short(day))
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundStyle(DateText.isOverdue(day) ? Calm.red : Calm.green)
+                    let today = Today.dayString()
+                    Text(day == today ? "Oggi" : DateText.relative(day))
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(day < today ? Calm.late : (day == today ? Calm.primary : Calm.soft))
+                        .padding(.horizontal, 8).padding(.vertical, 3)
+                        .background(RoundedRectangle(cornerRadius: 6).fill(day == today ? Calm.primary.opacity(0.12) : Color(hex: 0xECEEF2)))
                 }
-                Spacer()
-                if issue.priorityValue != .none {
-                    Circle().fill(Calm.priorityColor(issue.priorityValue)).frame(width: 8, height: 8)
+                if let project = store.project(issue.projectId) {
+                    Text(project.title).font(.system(size: 12)).foregroundStyle(Calm.muted).lineLimit(1)
                 }
+                Spacer(minLength: 0)
                 if issue.assigneeType == "agent" {
-                    Image(systemName: "sparkles").font(.system(size: 11)).foregroundStyle(Calm.muted)
+                    Image(systemName: "sparkles").font(.system(size: 12)).foregroundStyle(Calm.primary)
                 }
+                Text(issue.identifier).font(.system(size: 12)).foregroundStyle(Calm.muted)
             }
         }
-        .padding(12)
+        .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: 12).fill(.white))
-        .shadow(color: .black.opacity(0.05), radius: 2, y: 1)
+        .background(RoundedRectangle(cornerRadius: 18).fill(Calm.card))
     }
 }
