@@ -32,6 +32,7 @@ import { ProjectPicker } from "../projects/components";
 import { TranscriptButton } from "../common/task-transcript";
 import { cn } from "@multica/ui/lib/utils";
 import { ChevronLeft } from "lucide-react";
+import { InvestigateButton, useInvestigate } from "./calm-investigate";
 import {
   CALM,
   useBoard,
@@ -415,6 +416,7 @@ function Header({ issue, onDone, crumb }: { issue: Issue; onDone: () => void; cr
         <ChevronLeft size={18} strokeWidth={1.75} aria-hidden />
       </button>
       <span className="min-w-0 flex-1 truncate text-[13px] text-[#666666]">{crumb}</span>
+      <InvestigateButton issue={issue} label="Indaga con AI" />
       <AppLink
         href={`${paths.issueDetail(issue.identifier || issue.id)}?classica=1`}
         className="hidden text-[13px] text-[#666666] no-underline hover:text-[#202020] md:inline"
@@ -510,6 +512,20 @@ function CalmDetailBody({ issueId }: { issueId: string }) {
   const update = useUpdateIssue();
   const user = useAuthStore((s) => s.user);
   const { timeline, loading, submitComment } = useIssueTimeline(issueId, user?.id);
+  const { investigate } = useInvestigate();
+
+  // ⌥I hands the open task to the Indagine agent.
+  useEffect(() => {
+    if (!issue) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.altKey && !e.metaKey && !e.ctrlKey && e.code === "KeyI") {
+        e.preventDefault();
+        void investigate(issue);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [issue, investigate]);
 
   if (!issue) return <DetailSkeleton />;
   const project = projects.find((p) => p.id === issue.project_id);

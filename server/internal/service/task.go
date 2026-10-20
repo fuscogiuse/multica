@@ -4270,6 +4270,7 @@ func (s *TaskService) taskStarted(ctx context.Context, task db.AgentTaskQueue) {
 	// the issue-card agent activity indicator) lags by up to half a minute
 	// on the transition users care about most.
 	s.broadcastTaskEvent(ctx, protocol.EventTaskRunning, task)
+	s.calmOnTaskStarted(ctx, task)
 }
 
 // ExtendTaskPrepareLease keeps a claimed-but-not-started task protected while
@@ -4613,6 +4614,7 @@ func (s *TaskService) CompleteTaskWithTransition(ctx context.Context, taskID pgt
 
 	// Broadcast
 	s.broadcastTaskEvent(ctx, protocol.EventTaskCompleted, task)
+	s.calmOnTaskCompleted(ctx, task)
 
 	return &task, true, nil
 }
