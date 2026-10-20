@@ -8,22 +8,46 @@ struct NewTaskView: View {
     let project: Project?
     /// Put the new task straight into this status. Nil uses the first column of the project.
     var status: String?
+    /// Start listening as soon as the sheet opens.
+    var startDictation = false
 
+    @StateObject private var dictation = Dictation()
     @State private var title = ""
+    @State private var typedBeforeDictation = ""
     @State private var projectId: String?
     @State private var priority: Priority = .none
     @State private var hasDue = false
     @State private var due = Date()
     @State private var saving = false
-    @FocusState private var focused: Bool
+    @State private var detent: PresentationDetent = .medium
 
     var body: some View {
         NavigationStack {
             Form {
                 Section {
-                    TextField("Cosa c'è da fare?", text: $title, axis: .vertical)
-                        .focused($focused)
-                        .font(.system(size: 17))
+                    HStack(alignment: .top, spacing: 8) {
+                        TextField("Cosa c'è da fare?", text: $title, axis: .vertical)
+                            .font(.system(size: 17))
+                            .lineLimit(1...4)
+                        Button {
+                            Task { await toggleDictation() }
+                        } label: {
+                            Image(systemName: dictation.isListening ? "stop.circle.fill" : "mic.fill")
+                                .font(.system(size: 20))
+                                .foregroundStyle(dictation.isListening ? Calm.red : Calm.primary)
+                                .frame(width: 44, height: 44)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(dictation.isListening ? "Ferma la dettatura" : "Detta il task")
+                    }
+                    if dictation.isListening {
+                        Label("Sto ascoltando…", systemImage: "waveform")
+                            .font(.footnote).foregroundStyle(Calm.muted)
+                    }
+                    if let message = dictation.errorMessage {
+                        Text(message).font(.footnote).foregroundStyle(Calm.red)
+                    }
                 }
                 Section {
                     Picker("Progetto", selection: $projectId) {
@@ -46,22 +70,38 @@ struct NewTaskView: View {
             .navigationTitle("Nuovo task")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Annulla") { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) { Button("Annulla") { stopAndDismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Aggiungi") { save() }
                         .fontWeight(.semibold)
                         .disabled(saving || title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }
-            .onAppear {
-                projectId = project?.id
-                focused = true
+            .onAppear { projectId = project?.id }
+            .task { if startDictation { await toggleDictation() } }
+            .onChange(of: dictation.transcript) { _, text in
+                guard dictation.isListening || !text.isEmpty else { return }
+                let prefix = typedBeforeDictation.trimmingCharacters(in: .whitespaces)
+                title = prefix.isEmpty ? text : prefix + " " + text
             }
         }
-        .presentationDetents([.medium, .large])
+        // Stays at half height until the user drags it up. The keyboard does not open on its own.
+        .presentationDetents([.medium, .large], selection: $detent)
+        .presentationDragIndicator(.visible)
+    }
+
+    private func toggleDictation() async {
+        if !dictation.isListening { typedBeforeDictation = title }
+        await dictation.toggle()
+    }
+
+    private func stopAndDismiss() {
+        dictation.stop()
+        dismiss()
     }
 
     private func save() {
+        dictation.stop()
         saving = true
         let chosen = store.project(projectId)
         let firstKey = status ?? store.resolver(for: chosen).columns.first?.key ?? "todo"

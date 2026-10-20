@@ -1,6 +1,12 @@
 import SwiftUI
 import CalmCore
 
+/// The new-task sheet, typed or dictated.
+enum NewTaskMode: String, Identifiable {
+    case typed, dictated
+    var id: String { rawValue }
+}
+
 struct MainTabView: View {
     @EnvironmentObject var store: BoardStore
     @StateObject private var sidebar = SidebarState()
@@ -13,8 +19,9 @@ struct MainTabView: View {
     @State private var todayPath = NavigationPath()
     @State private var taskPath = NavigationPath()
     @State private var searchPath = NavigationPath()
-    @State private var newTask = false
-    @State private var dragOffset: CGFloat = 0
+    @State private var newTask: NewTaskMode?
+    /// Finger position while dragging the sidebar, from -drawerWidth (closed) to 0 (open). Nil when not dragging.
+    @State private var drag: CGFloat?
 
     private let drawerWidth: CGFloat = 316
 
@@ -27,6 +34,9 @@ struct MainTabView: View {
         default: return false
         }
     }
+
+    private var drawerX: CGFloat { drag ?? (sidebar.isOpen ? 0 : -drawerWidth) }
+    private var drawerProgress: Double { Double(1 + drawerX / drawerWidth) }
 
     var body: some View {
         ZStack(alignment: .leading) {
@@ -46,53 +56,55 @@ struct MainTabView: View {
                         .tag(3)
                 }
                 if tab != 3 {
-                    Button { newTask = true } label: {
-                        Image(systemName: "plus")
-                            .font(.system(size: 22, weight: .semibold))
-                            .foregroundStyle(.white)
-                            .frame(width: 56, height: 56)
-                            .background(Circle().fill(Calm.primary))
-                            .shadow(color: .black.opacity(0.18), radius: 8, y: 3)
+                    VStack(spacing: 12) {
+                        Button { newTask = .dictated } label: {
+                            Image(systemName: "mic.fill")
+                                .font(.system(size: 18, weight: .medium))
+                                .foregroundStyle(Calm.primary)
+                                .frame(width: 46, height: 46)
+                                .background(Circle().fill(Color.white))
+                                .overlay(Circle().strokeBorder(Color.black.opacity(0.1)))
+                                .shadow(color: .black.opacity(0.12), radius: 6, y: 2)
+                        }
+                        .accessibilityLabel("Detta un task")
+                        Button { newTask = .typed } label: {
+                            Image(systemName: "plus")
+                                .font(.system(size: 22, weight: .semibold))
+                                .foregroundStyle(.white)
+                                .frame(width: 56, height: 56)
+                                .background(Circle().fill(Calm.primary))
+                                .shadow(color: .black.opacity(0.18), radius: 8, y: 3)
+                        }
+                        .accessibilityLabel("Nuovo task")
                     }
-                    .accessibilityLabel("Nuovo task")
                     .padding(.trailing, 20)
                     .padding(.bottom, 68)
                 }
             }
-            .simultaneousGesture(
-                DragGesture(minimumDistance: 16)
-                    .onEnded { value in
-                        if canSwipeOpen, value.startLocation.x < 30, value.translation.width > 70,
-                           abs(value.translation.height) < 60 {
-                            withAnimation(.easeOut(duration: 0.22)) { sidebar.open() }
-                        }
-                    }
-            )
+            .simultaneousGesture(openGesture)
 
-            if sidebar.isOpen {
-                Color.black.opacity(0.32)
-                    .ignoresSafeArea()
-                    .onTapGesture { close() }
-                    .transition(.opacity)
-                    .accessibilityHidden(true)
-                SidebarView(
-                    onToday: { tab = 0; todayPath = NavigationPath(); close() },
-                    onScope: { newScope in select(newScope) })
-                    .frame(width: drawerWidth)
-                    .shadow(color: .black.opacity(0.18), radius: 14, x: 6)
-                    .offset(x: min(0, dragOffset))
-                    .gesture(
-                        DragGesture()
-                            .onChanged { dragOffset = min(0, $0.translation.width) }
-                            .onEnded { value in
-                                if value.translation.width < -80 { close() }
-                                withAnimation(.easeOut(duration: 0.18)) { dragOffset = 0 }
-                            })
-                    .transition(.move(edge: .leading))
-            }
+            Color.black.opacity(0.32 * drawerProgress)
+                .ignoresSafeArea()
+                .allowsHitTesting(sidebar.isOpen || drag != nil)
+                .onTapGesture { close() }
+                .gesture(closeGesture)
+                .accessibilityHidden(true)
+
+            SidebarView(
+                onToday: { tab = 0; todayPath = NavigationPath(); close() },
+                onScope: { newScope in select(newScope) })
+                .frame(width: drawerWidth)
+                .shadow(color: .black.opacity(0.18 * drawerProgress), radius: 14, x: 6)
+                .offset(x: drawerX)
+                .gesture(closeGesture)
+                .allowsHitTesting(sidebar.isOpen || drag != nil)
+                .accessibilityHidden(!sidebar.isOpen)
         }
+        .animation(.easeOut(duration: 0.22), value: sidebar.isOpen)
         .environmentObject(sidebar)
-        .sheet(isPresented: $newTask) { NewTaskView(project: currentProject) }
+        .sheet(item: $newTask) { mode in
+            NewTaskView(project: currentProject, startDictation: mode == .dictated)
+        }
         .alert("Qualcosa non è andato", isPresented: Binding(
             get: { store.errorMessage != nil && store.hasLoaded },
             set: { if !$0 { store.errorMessage = nil } })) {
@@ -125,17 +137,44 @@ struct MainTabView: View {
     private var scopedBoard: some View {
         switch scope {
         case .all:
-            BoardScreen(project: nil, title: "Tutti i task").id("all")
+            BoardScreen().id("all")
         case .area(let id):
-            BoardScreen(project: nil, title: store.companies.first { $0.id == id }?.name ?? "Area",
-                        initialFilter: IssueFilter(companyId: id)).id("area-\(id)")
+            BoardScreen(initialFilter: IssueFilter(companyId: id)).id("area-\(id)")
         case .project(let id):
-            if let project = store.project(id) {
-                BoardScreen(project: project, title: project.title).id("project-\(id)")
-            } else {
-                BoardScreen(project: nil, title: "Tutti i task").id("all")
-            }
+            let project = store.project(id)
+            BoardScreen(initialFilter: IssueFilter(companyId: project?.companyId, projectId: id)).id("project-\(id)")
         }
+    }
+
+    /// Pull the sidebar out from the left edge. The drawer follows the finger.
+    private var openGesture: some Gesture {
+        DragGesture(minimumDistance: 8)
+            .onChanged { value in
+                guard canSwipeOpen, !sidebar.isOpen, value.startLocation.x < 28,
+                      abs(value.translation.width) > abs(value.translation.height) else { return }
+                drag = max(-drawerWidth, min(0, -drawerWidth + value.translation.width))
+            }
+            .onEnded { value in
+                guard let current = drag else { return }
+                let open = current > -drawerWidth * 0.6 || value.predictedEndTranslation.width > drawerWidth * 0.5
+                drag = nil
+                withAnimation(.easeOut(duration: 0.22)) { sidebar.isOpen = open }
+            }
+    }
+
+    /// Push the open sidebar back to the left, or tap outside it.
+    private var closeGesture: some Gesture {
+        DragGesture(minimumDistance: 8)
+            .onChanged { value in
+                guard sidebar.isOpen else { return }
+                drag = max(-drawerWidth, min(0, value.translation.width))
+            }
+            .onEnded { value in
+                guard drag != nil else { return }
+                let stayOpen = (drag ?? 0) > -drawerWidth * 0.35 && value.predictedEndTranslation.width > -drawerWidth * 0.5
+                drag = nil
+                withAnimation(.easeOut(duration: 0.2)) { sidebar.isOpen = stayOpen }
+            }
     }
 
     private func select(_ newScope: BoardScope) {
@@ -157,7 +196,6 @@ struct MainTabView: View {
             launchProject = ""
         }
         if !launchSidebar.isEmpty, store.hasLoaded {
-            sidebar.startsInManageMode = launchSidebar == "manage"
             sidebar.open()
             launchSidebar = ""
         }

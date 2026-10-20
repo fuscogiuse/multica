@@ -13,6 +13,8 @@ enum Calm {
     static let blue = Color(hex: 0x246FE0)
     static let orange = Color(hex: 0xEB8909)
     static let red = Color(hex: 0xD1453B)
+    /// The floating bar: a calm, slightly muted red.
+    static let bar = Color(hex: 0xD9665C)
     static let line = Color.black.opacity(0.08)
 
     static func priorityColor(_ priority: Priority) -> Color {

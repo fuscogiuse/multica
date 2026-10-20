@@ -100,7 +100,7 @@ struct ListView: View {
         .background(Color.white)
         .environment(\.defaultMinListRowHeight, density == .compact ? 34 : 48)
         .scrollContentBackground(.hidden)
-        .contentMargins(.bottom, 90, for: .scrollContent)
+        .contentMargins(.bottom, 100, for: .scrollContent)
         .refreshable { await store.refresh() }
         .sheet(item: $newTaskColumn) { column in
             NewTaskView(project: project, status: column.key)

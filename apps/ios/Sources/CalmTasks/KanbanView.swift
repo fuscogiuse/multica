@@ -68,7 +68,7 @@ struct KanbanView: View {
                             .frame(maxWidth: .infinity, minHeight: 60)
                     }
                 }
-                .padding(.bottom, 90)
+                .padding(.bottom, 100)
             }
         }
         .padding(10)
