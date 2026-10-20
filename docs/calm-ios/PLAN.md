@@ -25,7 +25,7 @@ The work is split into small tasks. Each task runs as its own background Claude 
 | D1 | Where the code lives | `apps/ios/` in this repo (`fuscogiuse/multica`). Same repo as the API it consumes, shared CI, one place for fixtures. |
 | D2 | Branch model | Integration branch `calm-ios`, cut from `calm-ui`. Each task branch `ios/T<nn>-<slug>` is cut from `calm-ios` and merged into it by PR. One final PR `calm-ios` into `calm-ui`. |
 | D3 | Upstream mobile app | Upstream already ships `apps/mobile` (Expo / React Native). The request is SwiftUI, so this plan does not use it. It stays a fallback if the native app proves too slow to build. |
-| D4 | How the app reaches the iPhone | See section 2.1. Recommendation: TestFlight with the paid developer account. |
+| D4 | How the app reaches the iPhone | **Decided 2026-10-20: option B, free Personal Team with Xcode and wireless install.** TestFlight (option A) stays a later upgrade. See section 2.1. |
 | D5 | Signing | The free Personal Team expires every 7 days and needs a Mac build for each install. The paid account (99 EUR/year) removes both limits. |
 | D6 | Auth | Email code login: `POST /auth/send-code` then `POST /auth/verify-code`. The self-hosted server prints the code in its log (`[DEV] Verification code`), so there is no email. After login, the app stores the JWT in the Keychain. Phase 2 evaluates a personal access token (`POST /api/tokens`, `mul_` prefix) to avoid re-login. |
 | D7 | Workspace | One workspace (`solid`). The app sends `X-Workspace-ID` on every request. |
@@ -38,6 +38,8 @@ The work is split into small tasks. Each task runs as its own background Claude 
 | A. TestFlight (recommended) | 99 EUR/year | CI builds and uploads. The iPhone offers the update by itself, no cable. | No | One-time setup of an App Store Connect API key and signing as GitHub secrets, done by Giuseppe. Builds last 90 days. |
 | B. Free Personal Team, wireless install | 0 | Giuseppe runs `build-device.sh`. After a one-time cable pairing it can install over Wi-Fi. | Yes, every update | Breaks the "no builds on the Mac" rule. Expires after 7 days. The phone must be unlocked and on the same network. |
 | C. Free account with AltStore or SideStore | 0 | CI publishes an unsigned `.ipa`. AltStore re-signs and refreshes it on the phone over Wi-Fi. | No | Needs AltServer running on the Mac. Weekly refresh. Not verified in this setup. |
+
+Decision: B for now. Consequences: every update is built on the Mac by Giuseppe's own action (never by a session), the app must be re-signed every 7 days, and the phone must be unlocked and on the same Wi-Fi as the Mac. T13 and T14 are deferred until the paid account exists. T15 below makes the update a double click.
 
 Option A is the only one that matches "install once, then it updates itself". Phase 1 gets two extra tasks for it (T13 and T14). Until the account exists, option C or B can carry the first builds.
 
@@ -109,8 +111,9 @@ Each task is small: one PR, a few files, a check that CI can run. IDs are stable
 
 - **T10 Project skeleton.** `project.yml`, empty `CalmCore` framework, empty `CalmTasks` app that shows "Calm Tasks", an asset catalog with a placeholder icon, `.gitignore` entries for `*.xcodeproj`, `build*/`, `DerivedData`. Check: CI job `ios-build` (T11).
 - **T11 CI workflow.** `.github/workflows/ios.yml` on `macos-15`: install XcodeGen, `xcodegen generate`, build for the simulator with `CODE_SIGNING_ALLOWED=NO`, run `CalmCoreTests`, upload the `.app` as an artifact. Path filter on `apps/ios/**`. Check: the workflow is green on its own PR.
-- **T13 TestFlight pipeline (needs the paid account).** A second workflow `ios-testflight.yml`, manual or on a tag: archive, sign with the secrets, upload with the App Store Connect API key. Giuseppe creates the secrets; no session ever sees them. Check: the first build appears in TestFlight.
-- **T14 Version stamping.** The build number comes from the CI run number, the marketing version from the tag. Check: two consecutive builds install over each other.
+- **T15 One-click update.** `apps/ios/Update-iPhone.command`: pulls `calm-ios`, runs `build-device.sh` against the paired phone, prints a clear message if the phone is locked or not on the network. A short README section explains the one-time cable pairing (Xcode, Window, Devices and Simulators, "Connect via network") and the weekly refresh. Check: `shellcheck` in CI.
+- **T13 (deferred) TestFlight pipeline (needs the paid account).** A second workflow `ios-testflight.yml`, manual or on a tag: archive, sign with the secrets, upload with the App Store Connect API key. Giuseppe creates the secrets; no session ever sees them. Check: the first build appears in TestFlight.
+- **T14 (deferred) Version stamping.** The build number comes from the CI run number, the marketing version from the tag. Check: two consecutive builds install over each other.
 - **T12 Device script.** `build-device.sh` adapted from GrokPe (team id, bundle prefix, `devicectl` install). README for the one manual step. Check: `shellcheck` job in CI.
 
 ### Phase 2: core library (no screens)
@@ -342,6 +345,6 @@ Editing workflows or columns natively, push notifications, offline writes, App S
 
 ## 9. First three steps after approval
 
-1. Giuseppe answers D1 to D8 (a reply of "ok" accepts the recommendations).
+1. Giuseppe answers the remaining decisions D1 to D3 and D5 to D8 (a reply of "ok" accepts the recommendations). D4 is decided.
 2. The bot runs T-N0 and T-N1.
 3. The bot starts T00 and T01 in parallel.
