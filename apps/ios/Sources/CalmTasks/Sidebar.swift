@@ -33,6 +33,7 @@ struct SidebarView: View {
     @EnvironmentObject var sidebar: SidebarState
 
     @AppStorage(HiddenProjects.storageKey) private var hiddenRaw = ""
+    @State private var showManage = false
 
     let onToday: () -> Void
     let onScope: (BoardScope) -> Void
@@ -66,7 +67,16 @@ struct SidebarView: View {
                         areaRow(id: "none", name: "Senza area", colorHex: nil, projects: loose, scope: nil)
                     }
 
-                    Text("Tocca un'area per aprirla. Tieni premuto per scegliere un cliente o nasconderlo.")
+                    Button { showManage = true } label: {
+                        Label("Gestisci i clienti", systemImage: "eye.slash")
+                            .font(.system(size: 14))
+                            .foregroundStyle(Calm.primary)
+                            .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                            .padding(.horizontal, 12)
+                    }
+                    .buttonStyle(.plain)
+
+                    Text("Tocca un'area per aprirla. Tieni premuto per scegliere un cliente.")
                         .font(.system(size: 12))
                         .foregroundStyle(Calm.muted)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -80,6 +90,7 @@ struct SidebarView: View {
         }
         .frame(maxHeight: .infinity)
         .background(Color.white)
+        .sheet(isPresented: $showManage) { ManageClientsView() }
     }
 
     // MARK: Pieces
@@ -158,12 +169,8 @@ struct SidebarView: View {
                         Button(project.title) { onScope(.project(project.id)) }
                     }
                 }
-                Menu {
-                    ForEach(visible) { project in
-                        Button(project.title) { hiddenRaw = HiddenProjects.toggled(project.id, in: hiddenRaw) }
-                    }
-                } label: { Label("Nascondi un cliente", systemImage: "eye.slash") }
             }
+            Button { showManage = true } label: { Label("Nascondi più clienti…", systemImage: "eye.slash") }
             if !hiddenHere.isEmpty {
                 Menu {
                     ForEach(hiddenHere) { project in
@@ -173,6 +180,58 @@ struct SidebarView: View {
                         }
                     }
                 } label: { Label("Nascosti (\(hiddenHere.count))", systemImage: "eye") }
+            }
+        }
+    }
+}
+
+/// Choose which clients show in the sidebar, many at once.
+struct ManageClientsView: View {
+    @EnvironmentObject var store: BoardStore
+    @Environment(\.dismiss) private var dismiss
+    @AppStorage(HiddenProjects.storageKey) private var hiddenRaw = ""
+
+    private var hidden: Set<String> { HiddenProjects.set(hiddenRaw) }
+
+    private func setHidden(_ ids: [String], _ on: Bool) {
+        var all = hidden
+        for id in ids { if on { all.insert(id) } else { all.remove(id) } }
+        hiddenRaw = all.sorted().joined(separator: ",")
+    }
+
+    private func binding(_ project: Project) -> Binding<Bool> {
+        Binding(get: { !hidden.contains(project.id) }, set: { setHidden([project.id], !$0) })
+    }
+
+    var body: some View {
+        NavigationStack {
+            List {
+                ForEach(store.companies) { company in section(company.name, projects: store.projects(in: company)) }
+                let loose = store.projects(in: nil)
+                if !loose.isEmpty { section("Senza area", projects: loose) }
+            }
+            .listStyle(.insetGrouped)
+            .navigationTitle("Clienti nella barra")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Fine") { dismiss() }.fontWeight(.semibold) } }
+        }
+        .presentationDetents([.large])
+    }
+
+    private func section(_ name: String, projects: [Project]) -> some View {
+        let ids = projects.map(\.id)
+        let allHidden = !ids.isEmpty && ids.allSatisfy { hidden.contains($0) }
+        return Section {
+            ForEach(projects) { project in
+                Toggle(project.title, isOn: binding(project)).tint(Calm.primary)
+            }
+        } header: {
+            HStack {
+                Text(name)
+                Spacer()
+                Button(allHidden ? "Mostra tutti" : "Nascondi tutti") { setHidden(ids, !allHidden) }
+                    .font(.system(size: 13, weight: .medium))
+                    .textCase(nil)
             }
         }
     }
