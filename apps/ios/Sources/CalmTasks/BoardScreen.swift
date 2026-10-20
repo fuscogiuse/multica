@@ -50,6 +50,7 @@ struct BoardScreen: View {
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            ToolbarItem(placement: .topBarLeading) { MenuButton() }
             ToolbarItem(placement: .topBarTrailing) { columnsMenu }
         }
         .navigationDestination(for: Issue.self) { issue in TaskDetailView(issueId: issue.id) }
