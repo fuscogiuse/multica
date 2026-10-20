@@ -56,27 +56,15 @@ struct MainTabView: View {
                         .tag(3)
                 }
                 if tab != 3 {
-                    VStack(spacing: 12) {
-                        Button { newTask = .dictated } label: {
-                            Image(systemName: "mic.fill")
-                                .font(.system(size: 18, weight: .medium))
-                                .foregroundStyle(Calm.primary)
-                                .frame(width: 46, height: 46)
-                                .background(Circle().fill(Color.white))
-                                .overlay(Circle().strokeBorder(Color.black.opacity(0.1)))
-                                .shadow(color: .black.opacity(0.12), radius: 6, y: 2)
-                        }
-                        .accessibilityLabel("Detta un task")
-                        Button { newTask = .typed } label: {
-                            Image(systemName: "plus")
-                                .font(.system(size: 22, weight: .semibold))
-                                .foregroundStyle(.white)
-                                .frame(width: 56, height: 56)
-                                .background(Circle().fill(Calm.primary))
-                                .shadow(color: .black.opacity(0.18), radius: 8, y: 3)
-                        }
-                        .accessibilityLabel("Nuovo task")
+                    Button { newTask = .typed } label: {
+                        Image(systemName: "plus")
+                            .font(.system(size: 22, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .frame(width: 56, height: 56)
+                            .background(Circle().fill(Calm.primary))
+                            .shadow(color: .black.opacity(0.18), radius: 8, y: 3)
                     }
+                    .accessibilityLabel("Nuovo task")
                     .padding(.trailing, 20)
                     .padding(.bottom, 68)
                 }

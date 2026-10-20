@@ -34,6 +34,7 @@ struct BoardScreen: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            header
             if otherFiltersActive { chips }
             Group {
                 if !store.hasLoaded && store.isLoading {
@@ -46,17 +47,25 @@ struct BoardScreen: View {
             }
         }
         .background(Calm.warm.ignoresSafeArea())
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .topBarLeading) { MenuButton() }
-            ToolbarItem(placement: .principal) { titleMenu }
-            ToolbarItemGroup(placement: .topBarTrailing) {
-                viewToggle
-                filtersMenu
-                optionsMenu
-            }
-        }
+        // Own header instead of the system bar: the system bar wraps each button in glass and squeezes the title.
+        .toolbar(.hidden, for: .navigationBar)
         .navigationDestination(for: Issue.self) { issue in TaskDetailView(issueId: issue.id) }
+    }
+
+    // MARK: Header
+
+    private var header: some View {
+        HStack(spacing: 0) {
+            MenuButton()
+            titleMenu
+                .layoutPriority(1)
+            Spacer(minLength: 4)
+            viewToggle
+            filtersMenu
+            optionsMenu
+        }
+        .padding(.horizontal, 4)
+        .frame(height: 48)
     }
 
     // MARK: Title: pick the client
