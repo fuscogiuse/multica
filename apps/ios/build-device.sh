@@ -11,6 +11,7 @@ PREFIX="${2:-it.calmtasks.$USER}"
 xcodegen generate >/dev/null
 xcodebuild -project CalmTasks.xcodeproj -scheme CalmTasks -destination "platform=iOS,id=$DEVICE" \
   -derivedDataPath build-device -allowProvisioningUpdates -allowProvisioningDeviceRegistration \
-  DEVELOPMENT_TEAM="$TEAM" CODE_SIGN_STYLE=Automatic CT_BUNDLE_PREFIX="$PREFIX" build | grep -E "error:|BUILD (SUCCEEDED|FAILED)"
+  DEVELOPMENT_TEAM="$TEAM" CODE_SIGN_STYLE=Automatic CT_BUNDLE_PREFIX="$PREFIX" \
+  CURRENT_PROJECT_VERSION="$(git rev-list --count HEAD)" build | grep -E "error:|BUILD (SUCCEEDED|FAILED)"
 xcrun devicectl device install app --device "$DEVICE" build-device/Build/Products/Debug-iphoneos/CalmTasks.app
 echo "Installed. If the app will not open, trust the developer in Settings > General > VPN & Device Management."
