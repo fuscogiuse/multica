@@ -27,9 +27,9 @@ struct TaskRow: View {
                 Spacer(minLength: DS.Space.s)
                 if let day = issue.dueDay { dueText(day).font(DS.Text.footnote) }
             } else {
-                VStack(alignment: .leading, spacing: DS.Space.xxs) {
+                VStack(alignment: .leading, spacing: DS.Space.xs) {
                     Text(issue.title)
-                        .font(DS.Text.body)
+                        .font(.system(size: 17))
                         .foregroundStyle(isDone ? Calm.muted : Calm.ink)
                         .strikethrough(isDone)
                         .lineLimit(1)
@@ -42,7 +42,7 @@ struct TaskRow: View {
                     .accessibilityLabel("Priorità alta")
             }
         }
-        .frame(minHeight: compact ? DS.Size.rowCompact : (hasMeta ? DS.Size.rowMedium : DS.Size.iconButton))
+        .frame(minHeight: compact ? DS.Size.rowCompact : (hasMeta ? DS.Size.rowMedium : DS.Size.rowSingle))
         .contentShape(Rectangle())
     }
 

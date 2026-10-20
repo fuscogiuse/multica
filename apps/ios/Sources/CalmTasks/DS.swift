@@ -40,9 +40,10 @@ enum DS {
     enum Size {
         static let topBar: CGFloat = 44
         static let iconButton: CGFloat = 44
-        static let rowMedium: CGFloat = 54
-        static let rowCompact: CGFloat = 38
-        static let section: CGFloat = 36
+        static let rowMedium: CGFloat = 66
+        static let rowSingle: CGFloat = 54
+        static let rowCompact: CGFloat = 46
+        static let section: CGFloat = 40
         static let property: CGFloat = 48
         static let checkbox: CGFloat = 22
         static let checkboxCompact: CGFloat = 18
