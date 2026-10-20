@@ -7,7 +7,9 @@ import { issueListOptions, issueStatusCategory } from "@multica/core/issues";
 import { projectListOptions } from "@multica/core/projects";
 import { agentListOptions } from "@multica/core/workspace";
 import { agentTaskSnapshotOptions } from "@multica/core/agents";
-import type { AgentTask, Issue, IssuePriority, Project } from "@multica/core/types";
+import { companyListOptions } from "@multica/core/companies";
+import type { AgentTask, Company, Issue, IssuePriority, Project } from "@multica/core/types";
+import { useNavigation } from "../navigation";
 import { ActorAvatar } from "../common/actor-avatar";
 import { cn } from "@multica/ui/lib/utils";
 
@@ -129,6 +131,16 @@ export function byPriorityThenDue(a: Issue, b: Issue): number {
 const EMPTY_ISSUES: Issue[] = [];
 const EMPTY_PROJECTS: Project[] = [];
 const EMPTY_TASKS: AgentTask[] = [];
+const EMPTY_COMPANIES: Company[] = [];
+
+/** Kanban/Oggi scope from the URL: ?company=<id> and/or ?progetto=<id>. */
+export function useCalmScope() {
+  const { searchParams } = useNavigation();
+  return {
+    companyId: searchParams.get("company"),
+    projectId: searchParams.get("progetto"),
+  };
+}
 
 /** Everything the calm list/board screens read, in one place. */
 export function useCalmData() {
@@ -137,8 +149,11 @@ export function useCalmData() {
   const projectsQ = useQuery(projectListOptions(wsId));
   const snapshotQ = useQuery(agentTaskSnapshotOptions(wsId));
   const agentsQ = useQuery(agentListOptions(wsId));
+  const companiesQ = useQuery(companyListOptions(wsId));
+  const scope = useCalmScope();
 
-  const issues = issuesQ.data ?? EMPTY_ISSUES;
+  const allIssues = issuesQ.data ?? EMPTY_ISSUES;
+  const companies = companiesQ.data ?? EMPTY_COMPANIES;
   const projects = projectsQ.data ?? EMPTY_PROJECTS;
   const tasks = snapshotQ.data ?? EMPTY_TASKS;
 
@@ -147,6 +162,28 @@ export function useCalmData() {
     for (const p of projects) m.set(p.id, p);
     return m;
   }, [projects]);
+
+  const companyById = useMemo(() => {
+    const m = new Map<string, Company>();
+    for (const c of companies) m.set(c.id, c);
+    return m;
+  }, [companies]);
+
+  const companyOf = useMemo(() => {
+    return (issue: Issue): Company | undefined => {
+      const p = issue.project_id ? projectById.get(issue.project_id) : undefined;
+      return p?.company_id ? companyById.get(p.company_id) : undefined;
+    };
+  }, [projectById, companyById]);
+
+  // One board for every company; the URL scope narrows it.
+  const issues = useMemo(() => {
+    if (!scope.companyId && !scope.projectId) return allIssues;
+    return allIssues.filter((i) => {
+      if (scope.projectId) return i.project_id === scope.projectId;
+      return companyOf(i)?.id === scope.companyId;
+    });
+  }, [allIssues, scope.companyId, scope.projectId, companyOf]);
 
   const runningByIssue = useMemo(() => {
     const m = new Map<string, AgentTask>();
@@ -164,7 +201,12 @@ export function useCalmData() {
 
   return {
     issues,
+    projects,
     projectById,
+    companies,
+    companyById,
+    companyOf,
+    scope,
     runningByIssue,
     agentName,
     loading: issuesQ.isLoading,
@@ -230,6 +272,34 @@ export function ProjectLabel({ project, className }: { project: Project | undefi
       style={{ background: projectTint(project.id) }}
     >
       <span className="truncate">{project.title}</span>
+    </span>
+  );
+}
+
+/** Small "Company · Progetto" label for cards and rows. */
+export function ContextLabel({
+  project,
+  company,
+  className,
+}: {
+  project: Project | undefined;
+  company: Company | undefined;
+  className?: string;
+}) {
+  if (!project && !company) return null;
+  return (
+    <span className={cn("inline-flex max-w-full items-center gap-1.5 self-start truncate text-xs", className)}>
+      {company ? (
+        <span className="inline-flex h-[22px] items-center gap-1.5 rounded-md bg-[#f6f4f1] px-2 font-medium text-[#202020]">
+          <span className="size-2 shrink-0 rounded-full" style={{ background: company.color ?? CALM.primary }} />
+          <span className="truncate">{company.name}</span>
+        </span>
+      ) : null}
+      {project ? (
+        <span className="inline-flex h-[22px] items-center truncate rounded-md px-2 font-medium text-[#202020]" style={{ background: projectTint(project.id) }}>
+          <span className="truncate">{project.title}</span>
+        </span>
+      ) : null}
     </span>
   );
 }

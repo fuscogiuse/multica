@@ -2146,10 +2146,21 @@ func NewRouterWithOptions(pool *pgxpool.Pool, hub *realtime.Hub, bus *events.Bus
 					r.Put("/", h.UpdateProject)
 					r.Delete("/", h.DeleteProject)
 					r.Post("/workflow", h.SetProjectWorkflow)
+					r.Put("/company", h.SetProjectCompany)
 					r.Get("/resources", h.ListProjectResources)
 					r.Post("/resources", h.CreateProjectResource)
 					r.Put("/resources/{resourceId}", h.UpdateProjectResource)
 					r.Delete("/resources/{resourceId}", h.DeleteProjectResource)
+				})
+			})
+
+			// Companies (Calm UI fork): group projects and pick the Claude profile.
+			r.Route("/api/companies", func(r chi.Router) {
+				r.Get("/", h.ListCompanies)
+				r.Post("/", h.CreateCompany)
+				r.Route("/{id}", func(r chi.Router) {
+					r.Patch("/", h.UpdateCompany)
+					r.Delete("/", h.DeleteCompany)
 				})
 			})
 

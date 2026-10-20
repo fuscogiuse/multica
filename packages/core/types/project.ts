@@ -27,6 +27,8 @@ export interface Project {
    * Optional because older servers do not send it. (MUL-7420)
    */
   workflow_id?: string | null;
+  /** Calm UI fork: the company this project belongs to; null for none. */
+  company_id?: string | null;
 }
 
 export interface CreateProjectRequest {

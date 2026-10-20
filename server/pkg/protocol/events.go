@@ -93,6 +93,7 @@ const (
 	// Project events
 	EventProjectCreated         = "project:created"
 	EventProjectUpdated         = "project:updated"
+	EventCompanyChanged         = "company:changed"
 	EventProjectDeleted         = "project:deleted"
 	EventProjectResourceCreated = "project_resource:created"
 	EventProjectResourceUpdated = "project_resource:updated"

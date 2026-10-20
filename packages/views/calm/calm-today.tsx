@@ -86,18 +86,20 @@ function AssigneeChip({ issue, compact }: { issue: Issue; compact?: boolean }) {
 function TaskRow({
   issue,
   project,
+  companyName,
   running,
   completing,
   onComplete,
 }: {
   issue: Issue;
   project?: Project;
+  companyName?: string;
   running?: AgentTask;
   completing: boolean;
   onComplete: () => void;
 }) {
   const paths = useWorkspacePaths();
-  const meta = [project?.title, issue.identifier, issue.due_date ? formatDueIt(issue.due_date) : null].filter(Boolean);
+  const meta = [companyName, project?.title, issue.identifier, issue.due_date ? formatDueIt(issue.due_date) : null].filter(Boolean);
   return (
     <AppLink
       href={paths.issueDetail(issue.identifier || issue.id)}
@@ -196,7 +198,7 @@ function SectionTitle({ children, className }: { children: ReactNode; className?
 }
 
 export function CalmToday({ toggle }: { toggle: ReactNode }) {
-  const { issues, projectById, runningByIssue, agentName, loading } = useCalmData();
+  const { issues, projectById, companyOf, runningByIssue, agentName, loading } = useCalmData();
   const { completing, complete } = useComplete();
   const paths = useWorkspacePaths();
   const now = useNow();
@@ -237,6 +239,7 @@ export function CalmToday({ toggle }: { toggle: ReactNode }) {
       key={i.id}
       issue={i}
       project={i.project_id ? projectById.get(i.project_id) : undefined}
+      companyName={companyOf(i)?.name}
       running={runningByIssue.get(i.id)}
       completing={completing.has(i.id)}
       onComplete={() => complete(i.id)}

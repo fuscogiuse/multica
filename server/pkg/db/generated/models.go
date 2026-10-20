@@ -618,6 +618,17 @@ type CommentReaction struct {
 	CreatedAt   pgtype.Timestamptz `json:"created_at"`
 }
 
+type Company struct {
+	ID              pgtype.UUID        `json:"id"`
+	WorkspaceID     pgtype.UUID        `json:"workspace_id"`
+	Name            string             `json:"name"`
+	Color           pgtype.Text        `json:"color"`
+	ClaudeConfigDir pgtype.Text        `json:"claude_config_dir"`
+	Position        int32              `json:"position"`
+	CreatedAt       pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
+}
+
 type ContactSalesInquiry struct {
 	ID              pgtype.UUID        `json:"id"`
 	FirstName       string             `json:"first_name"`
@@ -1347,6 +1358,7 @@ type Project struct {
 	StartDate   pgtype.Date        `json:"start_date"`
 	DueDate     pgtype.Date        `json:"due_date"`
 	WorkflowID  pgtype.UUID        `json:"workflow_id"`
+	CompanyID   pgtype.UUID        `json:"company_id"`
 }
 
 type ProjectResource struct {

@@ -47,6 +47,9 @@ type ProjectResponse struct {
 	// WorkflowID is the workflow this project uses; null means the workspace
 	// Default workflow. (MUL-7420)
 	WorkflowID *string `json:"workflow_id"`
+	// CompanyID groups the project under a company (Calm UI fork); null means
+	// no company, so agents use the daemon's default Claude profile.
+	CompanyID *string `json:"company_id"`
 }
 
 func projectToResponse(p db.Project) ProjectResponse {
@@ -65,6 +68,7 @@ func projectToResponse(p db.Project) ProjectResponse {
 		CreatedAt:   timestampToString(p.CreatedAt),
 		UpdatedAt:   timestampToString(p.UpdatedAt),
 		WorkflowID:  uuidToPtr(p.WorkflowID),
+		CompanyID:   uuidToPtr(p.CompanyID),
 	}
 }
 

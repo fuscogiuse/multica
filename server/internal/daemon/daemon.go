@@ -8546,6 +8546,12 @@ func (d *Daemon) runTask(ctx context.Context, task Task, provider string, slot i
 		agentCustomEnv = task.Agent.CustomEnv
 	}
 	layerCustomEnvAndHermesHome(agentEnv, agentCustomEnv, env.HermesHome, d.logger)
+	// Calm UI fork: the project's company picks the Claude profile. It wins
+	// over the agent's own custom env, so one generic agent can work for
+	// several companies under different Claude accounts.
+	if provider == "claude" && task.ClaudeConfigDir != "" {
+		agentEnv["CLAUDE_CONFIG_DIR"] = expandHomeDir(task.ClaudeConfigDir)
+	}
 	if provider == "reasonix" {
 		reasonixStateHome, err := prepareReasonixTaskStateHome(d.cfg.Profile, task.RuntimeID, task.AgentID)
 		if err != nil {
@@ -10657,4 +10663,14 @@ func defaultArgsForProvider(cfg Config, provider string) []string {
 		return nil
 	}
 	return append([]string(nil), args...)
+}
+
+// expandHomeDir resolves a leading "~/" against the daemon user's home.
+func expandHomeDir(p string) string {
+	if p == "~" || strings.HasPrefix(p, "~/") {
+		if home, err := os.UserHomeDir(); err == nil {
+			return filepath.Join(home, strings.TrimPrefix(p, "~"))
+		}
+	}
+	return p
 }

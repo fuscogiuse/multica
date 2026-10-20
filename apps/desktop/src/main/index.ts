@@ -5,6 +5,7 @@ import { pathToFileURL } from "url";
 import { electronApp, optimizer, is } from "@electron-toolkit/utils";
 import fixPath from "fix-path";
 import { setupAutoUpdater } from "./updater";
+import { setupClaudeProfiles } from "./claude-profiles";
 import { setupDaemonManager } from "./daemon-manager";
 import { setupLocalDirectory } from "./local-directory";
 import { configureLinuxFileDialogs } from "./linux-file-dialog";
@@ -843,6 +844,7 @@ if (!gotTheLock) {
     createWindow();
 
     setupAutoUpdater(() => mainWindow);
+    setupClaudeProfiles();
     setupDaemonManager(() => mainWindow);
     setupLocalDirectory(() => mainWindow);
 

@@ -101,6 +101,9 @@ function subscribeToMainRendererChannel<T>(
 }
 
 const desktopAPI = {
+  /** Calm UI fork: Claude Code profiles (CLAUDE_CONFIG_DIR folders) on this Mac. */
+  listClaudeProfiles: (): Promise<{ name: string; dir: string }[]> =>
+    ipcRenderer.invoke("calm:list-claude-profiles"),
   /** App version + normalized OS. Read once at preload time so the renderer
    *  can use it synchronously when initializing the API client. */
   appInfo,

@@ -1,16 +1,14 @@
 "use client";
 
-import { useMemo, type ReactNode } from "react";
+import { type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useWorkspaceId } from "@multica/core/hooks";
 import { paths as rootPaths, useCurrentWorkspace, useWorkspacePaths } from "@multica/core/paths";
-import { agentListOptions, workspaceListOptions } from "@multica/core/workspace";
-import { agentTaskSnapshotOptions } from "@multica/core/agents";
+import { workspaceListOptions } from "@multica/core/workspace";
 import { openCreateIssueWithPreference } from "@multica/core/issues/stores/create-mode-store";
 import { AppLink, useNavigation } from "../navigation";
-import { ActorAvatar } from "../common/actor-avatar";
 import { MulticaIcon } from "@multica/ui/components/common/multica-icon";
 import { cn } from "@multica/ui/lib/utils";
+import { CompanyNav } from "./calm-companies";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -53,21 +51,6 @@ function useCalmLocation() {
   const onIssues = pathname === paths.issues();
   const vista = (searchParams.get("vista") as CalmView | null) ?? "lista";
   return { pathname, paths, onIssues, vista };
-}
-
-function useAgentsWithState() {
-  const wsId = useWorkspaceId();
-  const { data: agents = [] } = useQuery(agentListOptions(wsId));
-  const { data: tasks = [] } = useQuery(agentTaskSnapshotOptions(wsId));
-  return useMemo(() => {
-    const running = new Map<string, number>();
-    for (const t of tasks) {
-      if (t.status === "running") running.set(t.agent_id, (running.get(t.agent_id) ?? 0) + 1);
-    }
-    return agents
-      .filter((a) => !a.archived_at)
-      .map((a) => ({ agent: a, running: running.get(a.id) ?? 0 }));
-  }, [agents, tasks]);
 }
 
 function NavItem({ href, active, icon, children }: { href: string; active: boolean; icon: ReactNode; children: ReactNode }) {
@@ -147,7 +130,6 @@ function WorkspaceSwitcher() {
 /** Desktop sidebar (≥768px). Hidden on phones, which get the bottom tab bar. */
 export function CalmSidebar({ topSlot }: { topSlot?: ReactNode } = {}) {
   const { pathname, paths, onIssues, vista } = useCalmLocation();
-  const agents = useAgentsWithState();
   const starts = (p: string) => pathname === p || pathname.startsWith(p + "/");
 
   return (
@@ -174,31 +156,7 @@ export function CalmSidebar({ topSlot }: { topSlot?: ReactNode } = {}) {
       </NavItem>
 
       <div className="mx-2.5 my-[18px] h-px bg-black/[0.08]" />
-      <span className="px-3 pb-1.5 text-[13px] text-[#666666]">Account Claude</span>
-      {agents.length === 0 ? (
-        <AppLink href={paths.newAgent()} className="flex h-10 items-center px-3 text-sm text-[#4b4b4b] no-underline hover:text-[#202020]">
-          + Collega un agente
-        </AppLink>
-      ) : (
-        agents.map(({ agent, running }) => (
-          <AppLink
-            key={agent.id}
-            href={paths.agentDetail(agent.id)}
-            className={cn(
-              "flex min-h-12 items-center gap-2.5 rounded-[10px] px-3 py-1.5 text-sm text-[#4b4b4b] no-underline hover:bg-white/60",
-              starts(paths.agentDetail(agent.id)) && "bg-white text-[#202020]",
-            )}
-          >
-            <ActorAvatar actorType="agent" actorId={agent.id} size="md" />
-            <span className="flex min-w-0 flex-1 flex-col leading-tight">
-              <span className="truncate">{agent.name}</span>
-              <span className={cn("truncate text-xs", running ? "text-[#058527]" : "text-[#666666]")}>
-                {running ? `${running} in esecuzione` : "libero"}
-              </span>
-            </span>
-          </AppLink>
-        ))
-      )}
+      <CompanyNav />
 
       <div className="mx-2.5 my-[18px] h-px bg-black/[0.08]" />
       <SmallLink href={paths.inbox()} active={starts(paths.inbox())}>Inbox</SmallLink>

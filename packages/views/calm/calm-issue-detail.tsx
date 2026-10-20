@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useWorkspaceId } from "@multica/core/hooks";
 import { useAuthStore } from "@multica/core/auth";
@@ -13,11 +13,12 @@ import {
   useUpdateIssue,
 } from "@multica/core/issues";
 import { projectListOptions } from "@multica/core/projects";
+import { companyListOptions } from "@multica/core/companies";
 import { useActorName } from "@multica/core/workspace";
-import type { AgentTask, Issue, TimelineEntry, UpdateIssueRequest } from "@multica/core/types";
+import type { AgentTask, Company, Issue, TimelineEntry, UpdateIssueRequest } from "@multica/core/types";
 import { AppLink, useBackOrReplace } from "../navigation";
 import { ActorAvatar } from "../common/actor-avatar";
-import { ReadonlyContent } from "../editor";
+import { ContentEditor, ReadonlyContent, TitleEditor } from "../editor";
 import { useIssueTimeline } from "../issues/hooks";
 import {
   AssigneePicker,
@@ -30,7 +31,6 @@ import {
 import { ProjectPicker } from "../projects/components";
 import { TranscriptButton } from "../common/task-transcript";
 import { cn } from "@multica/ui/lib/utils";
-import { useIsMobile } from "@multica/ui/hooks/use-mobile";
 import {
   CALM,
   formatDueIt,
@@ -44,13 +44,6 @@ import {
 } from "./shared";
 
 const ACTIVE_TASK = new Set<AgentTask["status"]>(["queued", "dispatched", "running", "waiting_local_directory", "deferred"]);
-
-const STATUS_PILL: Record<string, { bg: string; fg: string }> = {
-  in_progress: { bg: "rgba(5,133,39,0.10)", fg: "#046b20" },
-  in_review: { bg: "rgba(36,111,224,0.10)", fg: "#1d5bba" },
-  done: { bg: "rgba(36,111,224,0.10)", fg: "#1d5bba" },
-  blocked: { bg: "rgba(209,69,59,0.10)", fg: "#b03a31" },
-};
 
 function useTick(ms = 30_000) {
   const [now, setNow] = useState(() => Date.now());
@@ -153,8 +146,8 @@ function Feed({ timeline, loading }: { timeline: TimelineEntry[]; loading: boole
           </div>
         ) : (
           <div key={e.id} id={`comment-${e.id}`} className="flex gap-2.5 md:gap-3">
-            <ActorAvatar actorType={e.actor_type} actorId={e.actor_id} name={e.actor_name} avatarUrl={e.actor_avatar_url} size="lg" />
-            <div className="flex min-w-0 flex-1 flex-col gap-1.5 rounded-xl bg-[#f6f4f1] px-3 py-2.5 md:gap-2 md:rounded-[14px] md:border md:border-black/[0.08] md:bg-white md:px-4 md:py-3">
+            <ActorAvatar actorType={e.actor_type} actorId={e.actor_id} name={e.actor_name} avatarUrl={e.actor_avatar_url} size="md" />
+            <div className="flex min-w-0 flex-1 flex-col gap-1">
               <div className="flex items-center gap-2 text-[13px] md:text-sm">
                 <span className="font-semibold">{who(e)}</span>
                 {e.actor_type === "agent" ? (
@@ -285,95 +278,83 @@ function Runs({ issueId, compact, hideActive }: { issueId: string; compact?: boo
   );
 }
 
-/* ---------- Properties ---------- */
-
-function PropRow({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div className="flex min-h-10 items-center text-sm">
-      <span className="w-[110px] shrink-0 text-[#666666]">{label}</span>
-      <div className="flex min-w-0 flex-1">{children}</div>
-    </div>
-  );
-}
+/* ---------- Properties (one row of pills) ---------- */
 
 function Dot({ color }: { color: string }) {
   return <span className="size-[9px] shrink-0 rounded-full" style={{ background: color }} />;
 }
 
-const triggerCls =
-  "inline-flex min-w-0 max-w-full items-center gap-2 whitespace-nowrap rounded-lg px-1.5 py-1 -ml-1.5 text-left font-medium text-[#202020] hover:bg-black/[0.04]";
-const triggerEl = <button type="button" className={triggerCls} />;
+const pillCls =
+  "inline-flex h-8 min-w-0 max-w-full items-center gap-1.5 whitespace-nowrap rounded-full bg-[#f6f4f1] px-3 text-[13px] text-[#202020] hover:bg-[#efe9e2]";
+const pillEl = <button type="button" className={pillCls} />;
 
-function Properties({ issue, onUpdate }: { issue: Issue; onUpdate: (u: Partial<UpdateIssueRequest>) => void }) {
+function PropertyPills({
+  issue,
+  onUpdate,
+  company,
+}: {
+  issue: Issue;
+  onUpdate: (u: Partial<UpdateIssueRequest>) => void;
+  company?: Company;
+}) {
   const { getActorName } = useActorName();
   return (
-    <div className="flex flex-col gap-1">
-      <PropRow label="Stato">
-        <StatusPicker
-          status={issue.status}
-          onUpdate={onUpdate}
-          projectId={issue.project_id}
-          issue={issue}
-          triggerRender={triggerEl}
-          trigger={
+    <div className="flex flex-wrap items-center gap-1.5">
+      <StatusPicker
+        status={issue.status}
+        onUpdate={onUpdate}
+        projectId={issue.project_id}
+        issue={issue}
+        triggerRender={pillEl}
+        trigger={
+          <>
+            <Dot color={STATUS_DOT[issue.status] ?? "rgba(0,0,0,0.25)"} />
+            {statusLabel(issue)}
+          </>
+        }
+      />
+      <PriorityPicker
+        priority={issue.priority}
+        onUpdate={onUpdate}
+        triggerRender={pillEl}
+        trigger={
+          <>
+            <Dot color={priorityColor(issue.priority).ring} />
+            {issue.priority === "none" ? "Priorità" : PRIORITY_IT[issue.priority]}
+          </>
+        }
+      />
+      <DueDatePicker
+        dueDate={issue.due_date}
+        onUpdate={onUpdate}
+        triggerRender={pillEl}
+        trigger={issue.due_date ? formatDueIt(issue.due_date) : <span className="text-[#666666]">Scadenza</span>}
+      />
+      <AssigneePicker
+        assigneeType={issue.assignee_type}
+        assigneeId={issue.assignee_id}
+        onUpdate={onUpdate}
+        triggerRender={pillEl}
+        trigger={
+          issue.assignee_type && issue.assignee_id ? (
             <>
-              <Dot color={STATUS_DOT[issue.status] ?? "rgba(0,0,0,0.25)"} />
-              {statusLabel(issue)}
+              <ActorAvatar actorType={issue.assignee_type} actorId={issue.assignee_id} size="xs" />
+              <span className="truncate">{getActorName(issue.assignee_type, issue.assignee_id)}</span>
             </>
-          }
-        />
-      </PropRow>
-      <PropRow label="Priorità">
-        <PriorityPicker
-          priority={issue.priority}
-          onUpdate={onUpdate}
-          triggerRender={triggerEl}
-          trigger={
-            <>
-              <Dot color={priorityColor(issue.priority).ring} />
-              {PRIORITY_IT[issue.priority]}
-            </>
-          }
-        />
-      </PropRow>
-      <PropRow label="Assegnato a">
-        <AssigneePicker
-          assigneeType={issue.assignee_type}
-          assigneeId={issue.assignee_id}
-          onUpdate={onUpdate}
-          triggerRender={triggerEl}
-          trigger={
-            <>
-              {issue.assignee_type && issue.assignee_id ? (
-                <>
-                  <ActorAvatar actorType={issue.assignee_type} actorId={issue.assignee_id} size="sm" />
-                  <span className="truncate">{getActorName(issue.assignee_type, issue.assignee_id)}</span>
-                </>
-              ) : (
-                <span className="text-[#666666]">Nessuno</span>
-              )}
-            </>
-          }
-        />
-      </PropRow>
-      <PropRow label="Progetto">
-        <div className="flex min-w-0 flex-1 [&>div]:flex-1">
-          <ProjectPicker projectId={issue.project_id} onUpdate={onUpdate} triggerRender={triggerEl} />
-        </div>
-      </PropRow>
-      <PropRow label="Scadenza">
-        <DueDatePicker
-          dueDate={issue.due_date}
-          onUpdate={onUpdate}
-          triggerRender={triggerEl}
-          trigger={
-            <>
-              <Dot color="rgba(0,0,0,0.25)" />
-              {issue.due_date ? formatDueIt(issue.due_date, true) : <span className="text-[#666666]">Nessuna</span>}
-            </>
-          }
-        />
-      </PropRow>
+          ) : (
+            <span className="text-[#666666]">Assegna</span>
+          )
+        }
+      />
+      <div className="flex min-w-0 [&>div]:min-w-0">
+        <ProjectPicker projectId={issue.project_id} onUpdate={onUpdate} triggerRender={pillEl} />
+      </div>
+      {company ? (
+        <span className={cn(pillCls, "cursor-default hover:bg-[#f6f4f1]")} title={company.claude_config_dir ?? "Profilo predefinito"}>
+          <span className="size-2 rounded-full" style={{ background: company.color ?? CALM.primary }} />
+          Profilo Claude: {company.name}
+        </span>
+      ) : null}
     </div>
   );
 }
@@ -418,64 +399,34 @@ function SubIssues({ issueId }: { issueId: string }) {
 
 /* ---------- Page ---------- */
 
-function MobileHeader({ issue }: { issue: Issue }) {
-  const wsId = useWorkspaceId();
+function Header({ issue, onDone, crumb }: { issue: Issue; onDone: () => void; crumb: string }) {
   const paths = useWorkspacePaths();
   const backOrReplace = useBackOrReplace();
-  const { data: projects = [] } = useQuery(projectListOptions(wsId));
-  const project = projects.find((p) => p.id === issue.project_id);
-  const crumb = [project?.title, issue.identifier].filter(Boolean).join(" · ");
-  const pill = STATUS_PILL[issue.status] ?? { bg: "#f6f4f1", fg: "#4b4b4b" };
+  const done = issue.status === "done";
   return (
-    <header className="flex items-center gap-2.5 px-3.5 pb-1.5 pt-3">
+    <header className="flex items-center gap-2 px-3.5 py-3 md:gap-3 md:px-8 md:py-4">
       <button
         type="button"
         aria-label="Indietro"
         onClick={() => backOrReplace(paths.issues())}
-        className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl text-[#202020]"
-      >
-      <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-        <path d="M15 18l-6-6 6-6" />
-      </svg>
-      </button>
-      <span className="min-w-0 flex-1 truncate text-sm text-[#666666]">{crumb}</span>
-      <span className="mr-2 inline-flex h-7 shrink-0 items-center rounded-full px-3 text-xs font-semibold" style={{ background: pill.bg, color: pill.fg }}>
-        {statusLabel(issue)}
-      </span>
-    </header>
-  );
-}
-
-function DesktopHeader({ issue, onDone }: { issue: Issue; onDone: () => void }) {
-  const wsId = useWorkspaceId();
-  const paths = useWorkspacePaths();
-  const backOrReplace = useBackOrReplace();
-  const { data: projects = [] } = useQuery(projectListOptions(wsId));
-  const project = projects.find((p) => p.id === issue.project_id);
-  const crumb = [project?.title, issue.identifier].filter(Boolean).join(" · ");
-  const done = issue.status === "done";
-  return (
-    <header className="flex items-center gap-3.5 border-b border-black/[0.08] px-9 py-[18px]">
-      <button
-        type="button"
-        aria-label="Torna alla lista"
-        onClick={() => backOrReplace(paths.issues())}
-        className="inline-flex size-11 items-center justify-center rounded-xl bg-[#f6f4f1] text-[#202020] hover:bg-[#efe9e2]"
+        className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl text-[#202020] hover:bg-[#f6f4f1]"
       >
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
           <path d="M15 18l-6-6 6-6" />
         </svg>
       </button>
-      <span className="text-sm text-[#666666]">{crumb}</span>
-      <div className="flex-1" />
-      <AppLink href={`${paths.issueDetail(issue.identifier || issue.id)}?classica=1`} className="text-[13px] text-[#666666] no-underline hover:text-[#202020]">
+      <span className="min-w-0 flex-1 truncate text-[13px] text-[#666666]">{crumb}</span>
+      <AppLink
+        href={`${paths.issueDetail(issue.identifier || issue.id)}?classica=1`}
+        className="hidden text-[13px] text-[#666666] no-underline hover:text-[#202020] md:inline"
+      >
         Vista completa
       </AppLink>
       <button
         type="button"
         onClick={onDone}
         className={cn(
-          "h-11 rounded-xl border px-[18px] text-sm font-medium",
+          "h-9 shrink-0 rounded-xl border px-3.5 text-[13px] font-medium",
           done ? "border-transparent bg-[#058527] text-white" : "border-black/[0.12] bg-white text-[#202020] hover:bg-[#fcfaf8]",
         )}
       >
@@ -485,11 +436,69 @@ function DesktopHeader({ issue, onDone }: { issue: Issue; onDone: () => void }) 
   );
 }
 
-function Description({ issue }: { issue: Issue }) {
-  if (!issue.description?.trim()) return null;
+/** Notion-like body: edits save on their own after a short pause. */
+function ContentBlock({ issue }: { issue: Issue }) {
+  const update = useUpdateIssue();
+  const inFlight = useRef(false);
+  const pending = useRef<{ markdown: string; base: string } | null>(null);
+
+  const save = (markdown: string, base: string) => {
+    if (inFlight.current) {
+      pending.current = { markdown, base };
+      return;
+    }
+    inFlight.current = true;
+    update.mutate(
+      { id: issue.id, description: markdown, description_base: base },
+      {
+        onSettled: () => {
+          inFlight.current = false;
+          const next = pending.current;
+          pending.current = null;
+          if (next) save(next.markdown, markdown);
+        },
+      },
+    );
+  };
+
   return (
-    <div className="max-w-[720px] text-[15px] leading-relaxed text-[#4b4b4b] md:text-base md:leading-[1.7]">
-      <ReadonlyContent content={issue.description} />
+    <div className="calm-content text-[15px] leading-[1.7] text-[#202020] md:text-base">
+      <ContentEditor
+        key={issue.id}
+        value={issue.description ?? ""}
+        placeholder="Scrivi qui i dettagli. # per un titolo, - per una lista, [] per una checklist."
+        onUpdate={(md, base) => save(md, base)}
+        debounceMs={1200}
+        flushPendingOnUnmount
+        currentIssueId={issue.id}
+      />
+    </div>
+  );
+}
+
+function TitleBlock({ issue, onDone }: { issue: Issue; onDone: () => void }) {
+  const update = useUpdateIssue();
+  return (
+    <div className="flex items-start gap-3">
+      <div className="pt-[9px] md:pt-[11px]">
+        <PriorityCircle
+          priority={issue.priority}
+          done={issue.status === "done"}
+          size={22}
+          onComplete={onDone}
+          label={issue.status === "done" ? "Riapri" : "Segna come fatto"}
+        />
+      </div>
+      <TitleEditor
+        key={`title-${issue.id}`}
+        defaultValue={issue.title}
+        placeholder="Titolo"
+        className="w-full text-[26px] font-semibold leading-tight tracking-[-0.01em] md:text-[32px]"
+        onBlur={(value) => {
+          const t = value.trim();
+          if (t && t !== issue.title) update.mutate({ id: issue.id, title: t, title_base: issue.title });
+        }}
+      />
     </div>
   );
 }
@@ -497,117 +506,56 @@ function Description({ issue }: { issue: Issue }) {
 function CalmDetailBody({ issueId }: { issueId: string }) {
   const wsId = useWorkspaceId();
   const { data: issue } = useQuery(issueDetailOptions(wsId, issueId));
+  const { data: projects = [] } = useQuery(projectListOptions(wsId));
+  const { data: companies = [] } = useQuery(companyListOptions(wsId));
   const update = useUpdateIssue();
-  const { getActorName } = useActorName();
-  const [tab, setTab] = useState<"dettagli" | "attivita">("attivita");
   const user = useAuthStore((s) => s.user);
   const { timeline, loading, submitComment } = useIssueTimeline(issueId, user?.id);
-  const isMobile = useIsMobile();
 
   if (!issue) return <DetailSkeleton />;
+  const project = projects.find((p) => p.id === issue.project_id);
+  const company = project?.company_id ? companies.find((c) => c.id === project.company_id) : undefined;
+  const crumb = [company?.name, project?.title, issue.identifier].filter(Boolean).join("  /  ");
   const onUpdate = (u: Partial<UpdateIssueRequest>) => update.mutate({ id: issue.id, ...u });
   const markDone = () => onUpdate({ status: issue.status === "done" ? "todo" : "done" });
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-white font-sans text-[#202020]">
-      {!isMobile ? (
-      <div className="flex h-full min-h-0 flex-col">
-        <DesktopHeader issue={issue} onDone={markDone} />
-        <div className="flex min-h-0 flex-1">
-          <section className="flex min-w-0 flex-1 flex-col">
-            <div className="flex min-h-0 flex-1 flex-col gap-[22px] overflow-y-auto px-14 pb-8 pt-8">
-              <h1 className="m-0 text-[30px] font-semibold leading-tight tracking-[-0.01em]">{issue.title}</h1>
-              <Description issue={issue} />
-              <SubIssues issueId={issue.id} />
-              <div className="h-px max-w-[720px] shrink-0 bg-black/[0.08]" />
-              <h2 className="m-0 text-[17px] font-semibold">Attività</h2>
-              <div className="max-w-[720px]">
-                <Feed timeline={timeline} loading={loading} />
-              </div>
-            </div>
-            <div className="border-t border-black/[0.08] px-14 pb-6 pt-3.5">
-              <Composer issueId={issue.id} submitComment={submitComment} />
-            </div>
-          </section>
-          <aside className="flex w-[340px] shrink-0 flex-col gap-[22px] overflow-y-auto border-l border-black/[0.08] bg-[#fcfaf8] px-[26px] py-7 lg:w-[340px]">
-            <Properties issue={issue} onUpdate={onUpdate} />
-            <div className="h-px shrink-0 bg-black/[0.08]" />
-            <Runs issueId={issue.id} />
-          </aside>
-        </div>
-      </div>
-      ) : (
-      <div className="flex h-full min-h-0 flex-col">
-        <MobileHeader issue={issue} />
-        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-          <div className="flex flex-col gap-3.5 px-[22px] pt-1.5">
-            <h1 className="m-0 text-[25px] font-semibold leading-tight">{issue.title}</h1>
-            <div className="flex flex-wrap items-center gap-2 text-[13px] text-[#666666]">
-              {issue.assignee_type && issue.assignee_id ? (
-                <span className="inline-flex h-8 items-center gap-1.5 rounded-full border border-black/10 pl-1 pr-3 text-[#202020]">
-                  <ActorAvatar actorType={issue.assignee_type} actorId={issue.assignee_id} size="md" />
-                  {getActorName(issue.assignee_type, issue.assignee_id)}
-                </span>
-              ) : null}
-              <span className="inline-flex items-center gap-1.5">
-                <Dot color={priorityColor(issue.priority).ring} />
-                {PRIORITY_IT[issue.priority]}
-              </span>
-              {issue.due_date ? <span>· {formatDueIt(issue.due_date)}</span> : null}
-            </div>
+      <Header issue={issue} onDone={markDone} crumb={crumb} />
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+        <article className="mx-auto flex w-full max-w-[760px] flex-col gap-5 px-[22px] pb-10 pt-4 md:px-10 md:pt-10">
+          <TitleBlock issue={issue} onDone={markDone} />
+          <div className="md:pl-[34px]">
+            <PropertyPills issue={issue} onUpdate={onUpdate} company={company} />
+          </div>
+          <div className="md:pl-[34px]">
             <Runs issueId={issue.id} compact />
           </div>
-
-          <nav aria-label="Sezioni" className="sticky top-0 z-10 flex gap-[22px] border-b border-black/[0.08] bg-white px-[22px] pt-[18px]">
-            {(
-              [
-                ["dettagli", "Dettagli"],
-                ["attivita", "Attività"],
-              ] as const
-            ).map(([k, label]) => (
-              <button
-                key={k}
-                type="button"
-                aria-pressed={tab === k}
-                onClick={() => setTab(k)}
-                className={cn(
-                  "pb-2.5 text-[15px]",
-                  tab === k ? "border-b-2 border-[#dc4c3e] pb-2 font-semibold text-[#202020]" : "text-[#666666]",
-                )}
-              >
-                {label}
-              </button>
-            ))}
-          </nav>
-
-          <div className="flex flex-col gap-5 px-[22px] pb-6 pt-4">
-            {tab === "attivita" ? (
-              <Feed timeline={timeline} loading={loading} />
-            ) : (
-              <>
-                <Description issue={issue} />
-                <SubIssues issueId={issue.id} />
-                <Properties issue={issue} onUpdate={onUpdate} />
-                <button
-                  type="button"
-                  onClick={markDone}
-                  className="h-11 rounded-xl border border-black/[0.12] text-sm font-medium"
-                >
-                  {issue.status === "done" ? "Riapri" : "Segna come fatto"}
-                </button>
-                <Runs issueId={issue.id} hideActive />
-              </>
-            )}
+          <div className="md:pl-[34px]">
+            <ContentBlock issue={issue} />
           </div>
-        </div>
-        <div
-          className="border-t border-black/[0.08] bg-white px-3.5 pt-2.5"
-          style={{ paddingBottom: "calc(12px + env(safe-area-inset-bottom))" }}
-        >
-          <Composer issueId={issue.id} submitComment={submitComment} />
-        </div>
+          <div className="md:pl-[34px]">
+            <SubIssues issueId={issue.id} />
+          </div>
+
+          <div className="mt-4 h-px bg-black/[0.08] md:ml-[34px]" />
+
+          <section className="flex flex-col gap-4 md:pl-[34px]">
+            <h2 className="m-0 text-[13px] font-medium text-[#666666]">Commenti</h2>
+            <Feed timeline={timeline} loading={loading} />
+            <Composer issueId={issue.id} submitComment={submitComment} />
+          </section>
+
+          <details className="group md:pl-[34px]">
+            <summary className="cursor-pointer list-none text-[13px] text-[#666666] hover:text-[#202020]">
+              Esecuzioni dell’agente
+            </summary>
+            <div className="pt-3">
+              <Runs issueId={issue.id} hideActive />
+            </div>
+          </details>
+        </article>
       </div>
-      )}
     </div>
   );
 }

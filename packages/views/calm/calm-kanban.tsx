@@ -8,8 +8,8 @@ import { openCreateIssueWithPreference } from "@multica/core/issues/stores/creat
 import { useModalStore } from "@multica/core/modals";
 import { useWorkspacePaths } from "@multica/core/paths";
 import { agentListOptions } from "@multica/core/workspace";
-import type { AgentTask, Issue, IssueStatus, Project } from "@multica/core/types";
-import { AppLink } from "../navigation";
+import type { AgentTask, Company, Issue, IssueStatus, Project } from "@multica/core/types";
+import { AppLink, useNavigation } from "../navigation";
 import { ActorAvatar } from "../common/actor-avatar";
 import { cn } from "@multica/ui/lib/utils";
 import { useIsMobile } from "@multica/ui/hooks/use-mobile";
@@ -17,8 +17,8 @@ import {
   byPriorityThenDue,
   calmColumn,
   CALM,
+  ContextLabel,
   formatDueIt,
-  ProjectLabel,
   type CalmColumn,
   useCalmData,
 } from "./shared";
@@ -35,11 +35,13 @@ const DONE_LIMIT = 8;
 function KanbanCard({
   issue,
   project,
+  company,
   running,
   draggable,
 }: {
   issue: Issue;
   project?: Project;
+  company?: Company;
   running?: AgentTask;
   draggable: boolean;
 }) {
@@ -54,7 +56,7 @@ function KanbanCard({
       }}
       className="flex flex-col gap-3 rounded-xl bg-white px-4 py-3.5 text-[#202020] no-underline shadow-[0_1px_2px_rgba(0,0,0,0.08)] transition-shadow hover:shadow-[0_2px_8px_rgba(0,0,0,0.10)]"
     >
-      <ProjectLabel project={project} />
+      <ContextLabel project={project} company={company} />
       <span className="text-[15px] font-medium leading-snug">{issue.title}</span>
       {running ? (
         <span className="inline-flex items-center gap-2 text-xs text-[#058527]">
@@ -81,6 +83,7 @@ function Column({
   onDropIssue,
   className,
   sectionRef,
+  projectId,
 }: {
   col: (typeof COLUMNS)[number];
   issues: Issue[];
@@ -88,6 +91,7 @@ function Column({
   onDropIssue: (id: string) => void;
   className?: string;
   sectionRef?: (el: HTMLElement | null) => void;
+  projectId?: string | null;
 }) {
   const [over, setOver] = useState(false);
   const [showAll, setShowAll] = useState(false);
@@ -126,7 +130,7 @@ function Column({
       ) : null}
       <button
         type="button"
-        onClick={() => useModalStore.getState().open("create-issue", { status: col.status })}
+        onClick={() => useModalStore.getState().open("create-issue", projectId ? { status: col.status, project_id: projectId } : { status: col.status })}
         className="h-11 rounded-[10px] px-2 text-left text-sm text-[#4b4b4b] hover:bg-white/60"
       >
         + Aggiungi una card
@@ -137,7 +141,16 @@ function Column({
 
 export function CalmKanban({ toggle }: { toggle: ReactNode }) {
   const wsId = useWorkspaceId();
-  const { issues, projectById, runningByIssue } = useCalmData();
+  const { issues, projectById, companyById, companyOf, scope, runningByIssue } = useCalmData();
+  const { replace } = useNavigation();
+  const paths = useWorkspacePaths();
+  const scopeProject = scope.projectId ? projectById.get(scope.projectId) : undefined;
+  const scopeCompany = scope.companyId
+    ? companyById.get(scope.companyId)
+    : scopeProject?.company_id
+      ? companyById.get(scopeProject.company_id)
+      : undefined;
+  const scopeTitle = scopeProject?.title ?? scopeCompany?.name;
   const { data: agents = [] } = useQuery(agentListOptions(wsId));
   const update = useUpdateIssue();
   const isMobile = useIsMobile();
@@ -197,7 +210,18 @@ export function CalmKanban({ toggle }: { toggle: ReactNode }) {
   return (
     <div className="flex h-full min-h-0 flex-col bg-[#fcfaf8] font-sans text-[#202020]">
       <header className="flex flex-wrap items-center gap-3.5 px-[22px] pb-3 pt-6 md:px-8 md:pb-2 md:pt-6">
-        <h1 className="m-0 flex-1 text-[30px] font-semibold tracking-[-0.01em] md:flex-none md:text-2xl">Kanban</h1>
+        <h1 className="m-0 flex-1 text-[30px] font-semibold tracking-[-0.01em] md:flex-none md:text-2xl">
+          {scopeTitle ?? "Kanban"}
+        </h1>
+        {scopeTitle ? (
+          <button
+            type="button"
+            onClick={() => replace(`${paths.issues()}?vista=kanban`)}
+            className="h-8 rounded-full bg-white px-3 text-[13px] text-[#4b4b4b] ring-1 ring-black/[0.06] hover:text-[#202020]"
+          >
+            {scopeProject && scopeCompany ? `${scopeCompany.name} · ` : ""}Mostra tutto ✕
+          </button>
+        ) : null}
         <div className="md:ml-4">{toggle}</div>
         <div className="hidden flex-1 md:block" />
         {liveAgents.length > 0 ? (
@@ -224,7 +248,11 @@ export function CalmKanban({ toggle }: { toggle: ReactNode }) {
         ) : null}
         <button
           type="button"
-          onClick={() => openCreateIssueWithPreference()}
+          onClick={() =>
+            scope.projectId
+              ? useModalStore.getState().open("create-issue", { project_id: scope.projectId })
+              : openCreateIssueWithPreference()
+          }
           className="hidden h-11 rounded-xl bg-[#dc4c3e] px-[18px] text-sm font-semibold text-white md:inline-flex md:items-center"
         >
           + Nuovo task
@@ -265,11 +293,13 @@ export function CalmKanban({ toggle }: { toggle: ReactNode }) {
               else colEls.current.delete(c.key);
             }}
             className="w-[calc(100vw-76px)] max-w-[330px] md:w-[330px]"
+            projectId={scope.projectId}
             render={(i) => (
               <KanbanCard
                 key={i.id}
                 issue={i}
                 project={i.project_id ? projectById.get(i.project_id) : undefined}
+                company={companyOf(i)}
                 running={runningByIssue.get(i.id)}
                 draggable={!isMobile}
               />

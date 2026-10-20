@@ -4,6 +4,7 @@ import type { WorkspaceWakeupPage, WorkspaceWakeupFilters } from "../types/issue
 import { WorkspaceWakeupPageSchema, IssueWakeupSchema, IssueWakeupSummaryRowSchema, PausedWakeupSchema, SystemWakeupSchema, WakeupRunSchema, WorkspaceSystemWakeupSchema } from "./schemas";
 import type { ArchivedInboxFilters } from "../inbox/filter-store";
 import type { ArchivedInboxPage, ArchivedInboxFacets } from "../types/inbox";
+import type { Company, ListCompaniesResponse, CreateCompanyRequest, UpdateCompanyRequest } from "../types/company";
 import { configStore } from "../config";
 import type {
   Issue,
@@ -4090,6 +4091,30 @@ export class ApiClient {
   ): Promise<void> {
     await this.fetch(`/api/projects/${projectId}/resources/${resourceId}`, {
       method: "DELETE",
+    });
+  }
+
+  // Companies (Calm UI fork)
+  async listCompanies(): Promise<ListCompaniesResponse> {
+    return this.fetch("/api/companies");
+  }
+
+  async createCompany(data: CreateCompanyRequest): Promise<Company> {
+    return this.fetch("/api/companies", { method: "POST", body: JSON.stringify(data) });
+  }
+
+  async updateCompany(id: string, data: UpdateCompanyRequest): Promise<Company> {
+    return this.fetch(`/api/companies/${id}`, { method: "PATCH", body: JSON.stringify(data) });
+  }
+
+  async deleteCompany(id: string): Promise<void> {
+    await this.fetch(`/api/companies/${id}`, { method: "DELETE" });
+  }
+
+  async setProjectCompany(projectId: string, companyId: string | null): Promise<Project> {
+    return this.fetch(`/api/projects/${projectId}/company`, {
+      method: "PUT",
+      body: JSON.stringify({ company_id: companyId }),
     });
   }
 
