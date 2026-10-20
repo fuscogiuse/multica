@@ -11,15 +11,15 @@ struct TaskRow: View {
     var onComplete: (() -> Void)?
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: density == .compact ? 8 : 12) {
             Button {
                 onComplete?()
             } label: {
                 Circle()
                     .strokeBorder(Calm.priorityColor(issue.priorityValue), lineWidth: 2)
                     .background(Circle().fill(Calm.priorityColor(issue.priorityValue).opacity(0.1)))
-                    .frame(width: density == .compact ? 20 : 22, height: density == .compact ? 20 : 22)
-                    .frame(width: 44, height: 44)
+                    .frame(width: density == .compact ? 17 : 22, height: density == .compact ? 17 : 22)
+                    .frame(width: density == .compact ? 30 : 44, height: density == .compact ? 34 : 44)
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -28,7 +28,7 @@ struct TaskRow: View {
 
             if density == .compact {
                 Text(issue.title)
-                    .font(.system(size: 15))
+                    .font(.system(size: 14))
                     .foregroundStyle(Calm.ink)
                     .lineLimit(1)
                 Spacer(minLength: 4)
@@ -60,7 +60,7 @@ struct TaskRow: View {
                 Spacer(minLength: 0)
             }
         }
-        .frame(minHeight: density == .compact ? 44 : 60)
+        .frame(minHeight: density == .compact ? 34 : 60)
         .contentShape(Rectangle())
     }
 

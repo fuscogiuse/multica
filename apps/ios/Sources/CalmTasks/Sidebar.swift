@@ -150,32 +150,41 @@ struct SidebarView: View {
         let visible = projects.filter { !hidden.contains($0.id) }
         let total = projects.reduce(0) { $0 + openCount($1) }
 
-        Button {
-            withAnimation(.easeInOut(duration: 0.18)) { openRaw = Collapsed.toggled(id, in: openRaw) }
-        } label: {
-            HStack(spacing: 10) {
+        HStack(spacing: 0) {
+            Button {
+                withAnimation(.easeInOut(duration: 0.18)) { openRaw = Collapsed.toggled(id, in: openRaw) }
+            } label: {
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(Calm.muted)
                     .rotationEffect(.degrees(isOpen ? 90 : 0))
-                    .frame(width: 14)
-                Circle().fill(colorHex.flatMap { Color(hexString: $0) } ?? Calm.muted).frame(width: 10, height: 10)
-                Text(name).font(.system(size: 16, weight: .semibold)).foregroundStyle(Calm.ink)
-                Spacer()
-                Text("\(total)").font(.system(size: 12)).foregroundStyle(Calm.muted)
+                    .frame(width: 40, height: 44)
+                    .contentShape(Rectangle())
             }
-            .padding(.horizontal, 10)
-            .frame(minHeight: 44)
-            .contentShape(Rectangle())
+            .buttonStyle(.plain)
+            .accessibilityLabel("\(isOpen ? "Chiudi" : "Apri") l'elenco di \(name)")
+
+            Button {
+                if let scope { onScope(scope) } else {
+                    withAnimation(.easeInOut(duration: 0.18)) { openRaw = Collapsed.toggled(id, in: openRaw) }
+                }
+            } label: {
+                HStack(spacing: 10) {
+                    Circle().fill(colorHex.flatMap { Color(hexString: $0) } ?? Calm.muted).frame(width: 10, height: 10)
+                    Text(name).font(.system(size: 16, weight: .semibold)).foregroundStyle(Calm.ink)
+                    Spacer()
+                    Text("\(total)").font(.system(size: 12)).foregroundStyle(Calm.muted)
+                }
+                .padding(.trailing, 10)
+                .frame(minHeight: 44)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Apri la vista di \(name), \(total) task")
         }
-        .buttonStyle(.plain)
-        .accessibilityLabel("\(name), \(projects.count) clienti, \(isOpen ? "aperta" : "chiusa")")
 
         if isOpen {
             VStack(spacing: 0) {
-                if let scope, !manage {
-                    projectRow(title: "Tutta l'area", count: nil, dimmed: false, bold: true) { onScope(scope) }
-                }
                 ForEach(manage ? projects : visible) { project in
                     if manage {
                         manageRow(project)

@@ -13,5 +13,5 @@ enum Density: String, CaseIterable {
         }
     }
 
-    var sectionHeaderHeight: CGFloat { self == .compact ? 36 : 40 }
+    var sectionHeaderHeight: CGFloat { self == .compact ? 30 : 40 }
 }
