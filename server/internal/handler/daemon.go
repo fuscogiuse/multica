@@ -3638,6 +3638,11 @@ func (h *Handler) buildClaimedTaskResponse(r *http.Request, task *db.AgentTaskQu
 			}
 		}
 		sort.SliceStable(columns, func(i, j int) bool { return columns[i].Position < columns[j].Position })
+		// A project workflow carries its own per-column instructions in the
+		// brief, so the generic column hints would double them.
+		if resp.ProjectWorkflow != nil {
+			columns = nil
+		}
 		for _, entry := range columns {
 			resp.BoardColumns = append(resp.BoardColumns, TaskIssueStatusData{
 				Key:         entry.Key,
