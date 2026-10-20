@@ -85,4 +85,13 @@ enum DateText {
     }
 
     static func isOverdue(_ day: String) -> Bool { day < Today.dayString() }
+
+    /// "Oggi", "Domani", or the short date.
+    static func relative(_ day: String) -> String {
+        let today = Today.dayString()
+        if day == today { return "Oggi" }
+        if let date = date(from: today), let next = Calendar.current.date(byAdding: .day, value: 1, to: date),
+           day == Self.day(from: next) { return "Domani" }
+        return short(day)
+    }
 }

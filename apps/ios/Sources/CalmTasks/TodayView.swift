@@ -15,7 +15,8 @@ struct TodayView: View {
                 }
                 ForEach(due) { issue in
                     NavigationLink(value: issue) {
-                        TaskRow(issue: issue, resolver: store.resolver(for: store.project(issue.projectId)), showStatus: true) {
+                        TaskRow(issue: issue, resolver: store.resolver(for: store.project(issue.projectId)),
+                                projectName: store.project(issue.projectId)?.title, showStatus: true) {
                             let r = store.resolver(for: store.project(issue.projectId))
                             Task { await store.move(issue, to: r.doneKey) }
                         }

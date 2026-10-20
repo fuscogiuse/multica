@@ -4,18 +4,21 @@ import CalmCore
 struct TaskRow: View {
     let issue: Issue
     let resolver: BoardResolver
+    var density: Density = .medium
+    /// The client name, shown under the title in the medium layout. Pass nil when the screen is already one client.
+    var projectName: String?
     var showStatus = false
     var onComplete: (() -> Void)?
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(spacing: 12) {
             Button {
                 onComplete?()
             } label: {
                 Circle()
                     .strokeBorder(Calm.priorityColor(issue.priorityValue), lineWidth: 2)
                     .background(Circle().fill(Calm.priorityColor(issue.priorityValue).opacity(0.1)))
-                    .frame(width: 22, height: 22)
+                    .frame(width: density == .compact ? 20 : 22, height: density == .compact ? 20 : 22)
                     .frame(width: 44, height: 44)
                     .contentShape(Rectangle())
             }
@@ -23,30 +26,54 @@ struct TaskRow: View {
             .accessibilityLabel("Segna come fatto")
             .disabled(onComplete == nil)
 
-            VStack(alignment: .leading, spacing: 4) {
+            if density == .compact {
                 Text(issue.title)
-                    .font(.system(size: 16))
+                    .font(.system(size: 15))
                     .foregroundStyle(Calm.ink)
-                    .multilineTextAlignment(.leading)
-                HStack(spacing: 8) {
-                    Text(issue.identifier).font(.system(size: 12)).foregroundStyle(Calm.muted)
-                    if let day = issue.dueDay {
-                        Text(DateText.short(day))
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundStyle(DateText.isOverdue(day) ? Calm.red : Calm.green)
+                    .lineLimit(1)
+                Spacer(minLength: 4)
+                trailing
+            } else {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(issue.title)
+                        .font(.system(size: 16))
+                        .foregroundStyle(Calm.ink)
+                        .lineLimit(1)
+                    HStack(spacing: 6) {
+                        if let projectName {
+                            Text(projectName).foregroundStyle(Calm.muted)
+                        }
+                        if showStatus {
+                            Text(resolver.name(for: issue.status)).foregroundStyle(Calm.muted)
+                        }
+                        if let day = issue.dueDay {
+                            Text(DateText.relative(day))
+                                .foregroundStyle(DateText.isOverdue(day) ? Calm.red : (day == Today.dayString() ? Calm.green : Calm.muted))
+                        }
+                        if issue.assigneeType == "agent" {
+                            Image(systemName: "sparkles").foregroundStyle(Calm.muted)
+                        }
                     }
-                    if issue.assigneeType == "agent" {
-                        Image(systemName: "sparkles").font(.system(size: 11)).foregroundStyle(Calm.muted)
-                    }
-                    if showStatus {
-                        Text(resolver.name(for: issue.status)).font(.system(size: 12)).foregroundStyle(Calm.muted)
-                    }
+                    .font(.system(size: 12))
+                    .lineLimit(1)
                 }
+                Spacer(minLength: 0)
             }
-            Spacer(minLength: 0)
         }
-        .padding(.vertical, 2)
+        .frame(minHeight: density == .compact ? 44 : 60)
         .contentShape(Rectangle())
+    }
+
+    @ViewBuilder
+    private var trailing: some View {
+        if issue.assigneeType == "agent" {
+            Image(systemName: "sparkles").font(.system(size: 12)).foregroundStyle(Calm.muted)
+        }
+        if let day = issue.dueDay {
+            Text(DateText.relative(day))
+                .font(.system(size: 12))
+                .foregroundStyle(DateText.isOverdue(day) ? Calm.red : (day == Today.dayString() ? Calm.green : Calm.muted))
+        }
     }
 }
 

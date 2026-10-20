@@ -11,6 +11,7 @@ struct BoardScreen: View {
     let title: String
 
     @AppStorage("calm.view") private var viewMode = "list"
+    @AppStorage(Density.storageKey) private var densityRaw = Density.medium.rawValue
     @State private var filter: IssueFilter
 
     init(project: Project?, title: String, initialFilter: IssueFilter = IssueFilter()) {
@@ -41,7 +42,7 @@ struct BoardScreen: View {
                 } else if viewMode == "kanban" {
                     KanbanView(resolver: resolver, issues: issues)
                 } else {
-                    ListView(resolver: resolver, issues: issues)
+                    ListView(resolver: resolver, issues: issues, showProject: project == nil)
                 }
             }
         }
@@ -85,6 +86,12 @@ struct BoardScreen: View {
                     if let url = model.workflowEditorURL(workflowId: store.workflow(for: activeProject)?.id) { openURL(url) }
                 }
             }
+            if viewMode == "list" {
+                Picker("Lista", selection: $densityRaw) {
+                    ForEach(Density.allCases, id: \.rawValue) { Text($0.title).tag($0.rawValue) }
+                }
+                .pickerStyle(.inline)
+            }
             Button("Aggiorna", systemImage: "arrow.clockwise") { Task { await store.refresh() } }
         } label: {
             Image(systemName: "ellipsis.circle").frame(width: 44, height: 44)
@@ -93,7 +100,7 @@ struct BoardScreen: View {
     }
 }
 
-/// Quick filters: area, project, status. Area and project are fixed when the screen belongs to one project.
+/// Icon filters: area, client, status, due date. Tap an icon for a pop-up menu; the choices combine.
 struct FilterBar: View {
     @EnvironmentObject var store: BoardStore
     @Binding var filter: IssueFilter
@@ -109,64 +116,91 @@ struct FilterBar: View {
         return store.projects.filter { $0.companyId == companyId }
     }
 
+    private var companyBinding: Binding<String?> {
+        Binding(
+            get: { filter.companyId },
+            set: { id in
+                filter.companyId = id
+                if let pid = filter.projectId, let id, store.project(pid)?.companyId != id { filter.projectId = nil }
+            })
+    }
+
+    private var projectBinding: Binding<String?> {
+        Binding(
+            get: { filter.projectId },
+            set: { id in
+                filter.projectId = id
+                filter.statusKey = nil
+            })
+    }
+
+    private var statusColumns: [StatusEntry] {
+        store.resolver(for: fixedProject ?? store.project(filter.projectId)).columns
+    }
+
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
                 if fixedProject == nil {
-                    chip("Area", value: companyName) {
-                        Button("Tutte") { filter.companyId = nil }
-                        ForEach(store.companies) { company in
-                            Button(company.name) {
-                                filter.companyId = company.id
-                                if let pid = filter.projectId, store.project(pid)?.companyId != company.id {
-                                    filter.projectId = nil
-                                }
-                            }
+                    Menu {
+                        Picker("Area", selection: companyBinding) {
+                            Text("Tutte le aree").tag(String?.none)
+                            ForEach(store.companies) { Text($0.name).tag(Optional($0.id)) }
                         }
-                    }
-                    chip("Progetto", value: projectTitle) {
-                        Button("Tutti") { filter.projectId = nil }
-                        ForEach(projectChoices) { project in
-                            Button(project.title) {
-                                filter.projectId = project.id
-                                filter.statusKey = nil
-                            }
+                        .pickerStyle(.inline)
+                    } label: { chip(icon: "square.grid.2x2", value: companyName, name: "area") }
+
+                    Menu {
+                        Picker("Cliente", selection: projectBinding) {
+                            Text("Tutti i clienti").tag(String?.none)
+                            ForEach(projectChoices) { Text($0.title).tag(Optional($0.id)) }
                         }
-                    }
+                        .pickerStyle(.inline)
+                    } label: { chip(icon: "folder", value: projectTitle, name: "cliente") }
                 }
-                chip("Stato", value: statusName) {
-                    Button("Tutti") { filter.statusKey = nil }
-                    ForEach(store.resolver(for: fixedProject ?? store.project(filter.projectId)).columns) { column in
-                        Button(column.name) { filter.statusKey = column.key }
+
+                Menu {
+                    Picker("Stato", selection: $filter.statusKey) {
+                        Text("Tutti gli stati").tag(String?.none)
+                        ForEach(statusColumns) { Text($0.name).tag(Optional($0.key)) }
                     }
-                }
+                    .pickerStyle(.inline)
+                } label: { chip(icon: "circle.dashed", value: statusName, name: "stato") }
+
+                Menu {
+                    Picker("Scadenza", selection: $filter.due) {
+                        Text("Qualsiasi scadenza").tag(DueFilter?.none)
+                        ForEach(DueFilter.allCases, id: \.self) { Text($0.italian).tag(Optional($0)) }
+                    }
+                    .pickerStyle(.inline)
+                } label: { chip(icon: "calendar", value: filter.due?.italian, name: "scadenza") }
+
                 if filter.isActive {
                     Button("Azzera") { filter = IssueFilter() }
-                        .font(.system(size: 13, weight: .medium))
+                        .font(.system(size: 14))
                         .foregroundStyle(Calm.primary)
-                        .frame(minHeight: 36)
+                        .frame(minHeight: 44)
+                        .padding(.horizontal, 4)
                 }
             }
             .padding(.horizontal, 16)
         }
-        .padding(.bottom, 6)
+        .padding(.bottom, 4)
     }
 
-    private func chip<Content: View>(_ title: String, value: String?, @ViewBuilder content: () -> Content) -> some View {
-        Menu {
-            content()
-        } label: {
-            HStack(spacing: 4) {
-                Text(value ?? title)
-                    .lineLimit(1)
-                Image(systemName: "chevron.down").font(.system(size: 9, weight: .semibold))
+    /// A round icon button. With a value it grows into a dark pill that shows the choice.
+    private func chip(icon: String, value: String?, name: String) -> some View {
+        HStack(spacing: 7) {
+            Image(systemName: icon).font(.system(size: 16, weight: .medium))
+            if let value {
+                Text(value).font(.system(size: 14, weight: .semibold)).lineLimit(1)
             }
-            .font(.system(size: 13, weight: .medium))
-            .foregroundStyle(value == nil ? Calm.soft : Color.white)
-            .padding(.horizontal, 12)
-            .frame(minHeight: 36)
-            .background(Capsule().fill(value == nil ? Color.clear : Calm.primary))
-            .overlay(Capsule().strokeBorder(value == nil ? Calm.line : Color.clear, lineWidth: 1))
         }
+        .foregroundStyle(value == nil ? Calm.ink : Color.white)
+        .padding(.horizontal, value == nil ? 0 : 14)
+        .frame(minWidth: 44, minHeight: 44)
+        .background(Capsule().fill(value == nil ? Color.white : Calm.ink))
+        .overlay(Capsule().strokeBorder(value == nil ? Calm.line.opacity(1.8) : Color.clear, lineWidth: 1))
+        .accessibilityLabel(value.map { "Filtro \(name): \($0)" } ?? "Filtra per \(name)")
     }
 }

@@ -5,6 +5,7 @@ struct SettingsView: View {
     @EnvironmentObject var model: AppModel
     @EnvironmentObject var store: BoardStore
     @State private var confirmSignOut = false
+    @AppStorage(Density.storageKey) private var densityRaw = Density.medium.rawValue
 
     private var version: String {
         let info = Bundle.main.infoDictionary
@@ -20,6 +21,12 @@ struct SettingsView: View {
                     LabeledContent("Server", value: model.session?.serverURL.host ?? "-")
                     Button("Aggiorna ora") { Task { await store.refresh() } }
                     Button("Esci", role: .destructive) { confirmSignOut = true }
+                }
+                Section("Aspetto") {
+                    Picker("Lista", selection: $densityRaw) {
+                        ForEach(Density.allCases, id: \.rawValue) { Text($0.title).tag($0.rawValue) }
+                    }
+                    .pickerStyle(.segmented)
                 }
                 Section("Informazioni") {
                     LabeledContent("Versione", value: version)

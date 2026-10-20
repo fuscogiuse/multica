@@ -4,8 +4,13 @@ import CalmCore
 struct ListView: View {
     @EnvironmentObject var store: BoardStore
     @AppStorage(Collapsed.storageKey) private var collapsedRaw = ""
+    @AppStorage(Density.storageKey) private var densityRaw = Density.medium.rawValue
     let resolver: BoardResolver
     let issues: [Issue]
+    /// Show the client name on each row. Off when the screen is a single client.
+    var showProject = true
+
+    private var density: Density { Density(rawValue: densityRaw) ?? .medium }
 
     var body: some View {
         let grouped = resolver.group(issues)
@@ -21,7 +26,8 @@ struct ListView: View {
                         }
                         ForEach(items) { issue in
                             NavigationLink(value: issue) {
-                                TaskRow(issue: issue, resolver: resolver) {
+                                TaskRow(issue: issue, resolver: resolver, density: density,
+                                        projectName: showProject ? store.project(issue.projectId)?.title : nil) {
                                     Task { await store.move(issue, to: resolver.doneKey) }
                                 }
                             }
@@ -51,12 +57,17 @@ struct ListView: View {
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
+                    .padding(.horizontal, 16)
+                    .frame(maxWidth: .infinity, minHeight: density.sectionHeaderHeight, alignment: .leading)
+                    .background(Calm.sand)
+                    .listRowInsets(EdgeInsets())
                     .accessibilityLabel("\(column.name), \(items.count) task, \(isFolded ? "chiusa" : "aperta")")
                     .textCase(nil)
                 }
             }
         }
-        .listStyle(.insetGrouped)
+        .listStyle(.plain)
+        .environment(\.defaultMinListRowHeight, density == .compact ? 44 : 60)
         .scrollContentBackground(.hidden)
         .contentMargins(.bottom, 90, for: .scrollContent)
         .refreshable { await store.refresh() }
