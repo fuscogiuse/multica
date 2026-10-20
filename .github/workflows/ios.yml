@@ -68,6 +68,35 @@ jobs:
           xcodebuild build -project CalmTasks.xcodeproj -scheme CalmTasks \
             -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
             -derivedDataPath build/derived CODE_SIGNING_ALLOWED=NO | tail -n 40
+      - name: Screenshots with demo data
+        continue-on-error: true
+        run: |
+          APP=apps/ios/build/derived/Build/Products/Debug-iphonesimulator/CalmTasks.app
+          OUT=apps/ios/build/screenshots
+          mkdir -p "$OUT"
+          xcrun simctl boot "${{ steps.sim.outputs.name }}" || true
+          xcrun simctl bootstatus "${{ steps.sim.outputs.name }}" -b
+          xcrun simctl install booted "$APP"
+          shot() {
+            NAME=$1; shift
+            xcrun simctl terminate booted it.calmtasks.app 2>/dev/null || true
+            xcrun simctl launch booted it.calmtasks.app -demo "$@"
+            sleep 6
+            xcrun simctl io booted screenshot "$OUT/$NAME.png"
+          }
+          shot 01-today -calm.tab 0 -calm.view list -calm.openProject ""
+          shot 02-tasks-list -calm.tab 1 -calm.view list -calm.openProject ""
+          shot 03-tasks-kanban -calm.tab 1 -calm.view kanban -calm.openProject ""
+          shot 04-projects -calm.tab 2 -calm.view list -calm.openProject ""
+          shot 05-project-workflow-list -calm.tab 2 -calm.view list -calm.openProject p1
+          shot 06-project-workflow-kanban -calm.tab 2 -calm.view kanban -calm.openProject p1
+          shot 07-settings -calm.tab 3 -calm.view list -calm.openProject ""
+      - name: Upload screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots
+          path: apps/ios/build/screenshots
+          retention-days: 14
       - name: Upload the simulator build
         uses: actions/upload-artifact@v4
         with:

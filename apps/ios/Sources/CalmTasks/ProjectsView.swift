@@ -3,9 +3,11 @@ import CalmCore
 
 struct ProjectsView: View {
     @EnvironmentObject var store: BoardStore
+    @State private var path: [Project] = []
+    @AppStorage("calm.openProject") private var openProject = ""
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             List {
                 ForEach(store.companies) { company in
                     Section(company.name) {
@@ -27,6 +29,16 @@ struct ProjectsView: View {
             .scrollContentBackground(.hidden)
             .background(Calm.warm)
             .navigationTitle("Progetti")
+            .navigationDestination(for: Project.self) { project in
+                BoardScreen(project: project, title: project.title)
+            }
+            .onChange(of: store.projects) { _, projects in
+                // Screenshot hook: `-calm.openProject <id>` opens that project on launch.
+                if !openProject.isEmpty, path.isEmpty, let project = projects.first(where: { $0.id == openProject }) {
+                    path = [project]
+                    openProject = ""
+                }
+            }
             .refreshable { await store.refresh() }
             .overlay {
                 if store.hasLoaded && store.projects.isEmpty {
@@ -37,9 +49,7 @@ struct ProjectsView: View {
     }
 
     private func row(_ project: Project) -> some View {
-        NavigationLink {
-            BoardScreen(project: project, title: project.title)
-        } label: {
+        NavigationLink(value: project) {
             HStack {
                 Text(project.title).foregroundStyle(Calm.ink)
                 Spacer()

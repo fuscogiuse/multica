@@ -3,7 +3,7 @@ import CalmCore
 
 struct MainTabView: View {
     @EnvironmentObject var store: BoardStore
-    @State private var tab = 0
+    @AppStorage("calm.tab") private var tab = 0
     @State private var newTask = false
 
     var body: some View {

@@ -15,6 +15,14 @@ final class AppModel: ObservableObject {
     private var refreshTask: Task<Void, Never>?
 
     init() {
+        if ProcessInfo.processInfo.arguments.contains("-demo") {
+            auth = AuthService(sessions: SessionStore(store: InMemorySecretStore()))
+            let demo = BoardStore(api: DemoAPI())
+            store = demo
+            phase = .ready
+            Task { await demo.refresh() }
+            return
+        }
         auth = AuthService(sessions: SessionStore(store: KeychainSecretStore()))
         if let restored = auth.restore(), let client = auth.client {
             session = restored
@@ -84,7 +92,11 @@ final class AppModel: ObservableObject {
     }
 
     func stopSocket() { socket?.stop() }
-    func resumeSocket() { startSocket(); Task { await refresh() } }
+    func resumeSocket() {
+        guard session != nil else { return }
+        startSocket()
+        Task { await refresh() }
+    }
 
     func signOut() {
         socket?.stop()
