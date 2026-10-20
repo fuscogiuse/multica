@@ -10,12 +10,25 @@ struct TaskDetailView: View {
     @State private var notes = ""
     @State private var comments: [Comment] = []
     @State private var newComment = ""
+    @State private var mentionables: [Mentionable] = []
+    @State private var chosenMentions: [Mentionable] = []
     @State private var loadedId: String?
     @State private var hasDue = false
     @State private var dueDate = Date()
     @FocusState private var focus: Field?
 
     private enum Field { case title, notes, comment }
+
+    private var mentionSuggestions: [Mentionable] {
+        guard focus == .comment, let query = MentionText.activeQuery(in: newComment) else { return [] }
+        return MentionText.suggestions(mentionables, matching: query.text)
+    }
+
+    private func pick(_ person: Mentionable) {
+        guard let query = MentionText.activeQuery(in: newComment) else { return }
+        newComment = MentionText.inserting(person, over: query, in: newComment)
+        if !chosenMentions.contains(person) { chosenMentions.append(person) }
+    }
 
     private var issue: Issue? { store.issues.first { $0.id == issueId } }
 
@@ -71,14 +84,37 @@ struct TaskDetailView: View {
                         VStack(alignment: .leading, spacing: 4) {
                             Text(comment.authorType == "agent" ? "Agente" : "Tu")
                                 .font(.system(size: 11, weight: .medium)).foregroundStyle(Calm.muted)
-                            Text(comment.content).font(.system(size: 15)).foregroundStyle(Calm.ink)
+                            Text(MentionText.attributed(comment.content)).font(.system(size: 15)).foregroundStyle(Calm.ink)
                         }
                         .padding(12)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .background(RoundedRectangle(cornerRadius: 12).fill(.white))
                     }
+                    if !mentionSuggestions.isEmpty {
+                        VStack(spacing: 0) {
+                            ForEach(mentionSuggestions) { person in
+                                Button { pick(person) } label: {
+                                    HStack(spacing: 10) {
+                                        Image(systemName: person.kind == .agent ? "sparkles" : "person.fill")
+                                            .font(.system(size: 13)).foregroundStyle(Calm.primary).frame(width: 20)
+                                        Text(person.name).font(.system(size: 15)).foregroundStyle(Calm.ink).lineLimit(1)
+                                        Spacer()
+                                        Text(person.kind == .agent ? "Agente" : "Membro")
+                                            .font(.system(size: 12)).foregroundStyle(Calm.muted)
+                                    }
+                                    .padding(.horizontal, 12)
+                                    .frame(minHeight: 44)
+                                    .contentShape(Rectangle())
+                                }
+                                .buttonStyle(.plain)
+                                if person.id != mentionSuggestions.last?.id { Divider() }
+                            }
+                        }
+                        .background(RoundedRectangle(cornerRadius: 12).fill(.white))
+                        .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Calm.line))
+                    }
                     HStack {
-                        TextField("Scrivi un commento", text: $newComment, axis: .vertical)
+                        TextField("Scrivi un commento, @ per menzionare", text: $newComment, axis: .vertical)
                             .focused($focus, equals: .comment)
                             .padding(.horizontal, 12)
                             .frame(minHeight: 44)
@@ -169,6 +205,7 @@ struct TaskDetailView: View {
         if let day = issue.dueDay, let date = DateText.date(from: day) { hasDue = true; dueDate = date }
         if let client = model.auth.client {
             comments = (try? await client.comments(issueId: issue.id)) ?? []
+            mentionables = await client.mentionables()
         }
     }
 
@@ -186,12 +223,15 @@ struct TaskDetailView: View {
     }
 
     private func sendComment(_ issue: Issue) async {
-        let text = newComment.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty, let client = model.auth.client else { return }
+        let typed = newComment.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !typed.isEmpty, let client = model.auth.client else { return }
+        // "@Name" becomes the markup that makes the server start the agent.
+        let text = MentionText.toMarkup(typed, mentions: chosenMentions)
         do {
             let comment = try await client.addComment(issueId: issue.id, content: text)
             comments.append(comment)
             newComment = ""
+            chosenMentions = []
         } catch {
             store.errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
         }

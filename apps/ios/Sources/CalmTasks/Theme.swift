@@ -97,3 +97,23 @@ enum DateText {
         return short(day)
     }
 }
+
+extension MentionText {
+    /// A comment as styled text: mentions look like chips ("@Name", coloured, on a soft background).
+    static func attributed(_ markup: String) -> AttributedString {
+        var out = AttributedString()
+        for segment in segments(markup) {
+            switch segment {
+            case .text(let text):
+                out += AttributedString(text)
+            case .mention(let name, _):
+                var chip = AttributedString("\u{2009}@\(name)\u{2009}")
+                chip.foregroundColor = Calm.primary
+                chip.backgroundColor = Calm.primary.opacity(0.12)
+                chip.font = .system(size: 15, weight: .semibold)
+                out += chip
+            }
+        }
+        return out
+    }
+}

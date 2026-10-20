@@ -284,6 +284,7 @@ async function readBody(req) {
 const http = createServer(async (req, res) => {
   const url = new URL(req.url || "/", "http://localhost");
   const ip = String(req.headers["x-forwarded-for"] || req.socket.remoteAddress || "?").split(",")[0].trim();
+  log(`req ${req.method} ${url.pathname} from ${ip}`);
 
   if (url.pathname === "/health") {
     res.writeHead(200, { "Content-Type": "text/plain" }).end("ok");
