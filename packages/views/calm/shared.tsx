@@ -9,6 +9,8 @@ import { agentListOptions } from "@multica/core/workspace";
 import { agentTaskSnapshotOptions } from "@multica/core/agents";
 import { companyListOptions } from "@multica/core/companies";
 import { useIssueStatuses } from "@multica/core/issue-statuses";
+import { useFeatureEnabled } from "@multica/core/config";
+import { useProjectWorkflow } from "@multica/core/issue-workflows";
 import type { IssueStatusEntry } from "@multica/core/types";
 import type { AgentTask, Company, Issue, IssuePriority, Project } from "@multica/core/types";
 import { useNavigation } from "../navigation";
@@ -120,15 +122,35 @@ export function calmColumn(issue: Issue): CalmColumn | null {
  * The calm board: every visible status is a column, in the user's order.
  * Statuses hidden from the board fold into the first visible column of the
  * same lifecycle category, or drop off the board when there is none.
+ *
+ * With project workflows on and a project in view, the columns are that
+ * project's workflow steps in the workflow's order instead. The Default
+ * workflow, the all-projects view and company views keep the catalog columns.
  */
-export function useBoard() {
+export function useBoard(projectIdOverride?: string | null) {
   const wsId = useWorkspaceId();
   const catalog = useIssueStatuses(wsId);
+  const scope = useCalmScope();
+  const workflowsOn = useFeatureEnabled("project_workflows_v1");
+  const projectId = projectIdOverride === undefined ? scope.projectId : projectIdOverride;
+  const workflow = useProjectWorkflow(wsId, workflowsOn ? projectId : null);
   return useMemo(() => {
-    const columns = catalog.activeStatuses
-      .filter((s) => !s.board_hidden)
-      .slice()
-      .sort((a, b) => a.position - b.position);
+    let columns: IssueStatusEntry[];
+    if (workflowsOn && workflow && !workflow.is_default) {
+      columns = [];
+      for (const step of workflow.steps) {
+        const entry = catalog.entryOf(step.status_key);
+        // Closed statuses (cancelled) never get a column.
+        if (entry && !entry.archived_at && catalog.categoryOf(step.status_key) !== "closed") {
+          columns.push(entry);
+        }
+      }
+    } else {
+      columns = catalog.activeStatuses
+        .filter((s) => !s.board_hidden)
+        .slice()
+        .sort((a, b) => a.position - b.position);
+    }
     const visible = new Set(columns.map((c) => c.key));
     const columnOf = (issue: Pick<Issue, "status">): IssueStatusEntry | undefined => {
       if (visible.has(issue.status)) return columns.find((c) => c.key === issue.status);
@@ -139,7 +161,7 @@ export function useBoard() {
     const nameOf = (key: string) => catalog.entryOf(key)?.name ?? STATUS_IT[key] ?? key;
     const colorOf = (key: string) => catalog.entryOf(key)?.color ?? STATUS_DOT[key] ?? "rgba(0,0,0,0.25)";
     return { columns, all: catalog.activeStatuses, columnOf, nameOf, colorOf, ready: !catalog.isPending };
-  }, [catalog]);
+  }, [catalog, workflow, workflowsOn]);
 }
 
 export function isOpen(issue: Issue): boolean {
