@@ -11,6 +11,7 @@ public protocol BoardAPI: AnyObject {
     func issues(includeClosed: Bool, maxPages: Int) async throws -> [Issue]
     func updateIssue(id: String, _ body: UpdateIssueBody) async throws -> Issue
     func createIssue(_ body: CreateIssueBody) async throws -> Issue
+    func deleteIssue(id: String) async throws
 }
 
 extension APIClient: BoardAPI {}
@@ -131,6 +132,19 @@ public final class BoardStore: ObservableObject {
             let updated = try await api.updateIssue(id: issue.id, body)
             if let i = issues.firstIndex(where: { $0.id == issue.id }) { issues[i] = updated }
         } catch {
+            errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+        }
+    }
+
+    /// Deletes an issue, hiding it at once and putting it back if the server refuses.
+    public func delete(_ issue: Issue) async {
+        guard let index = issues.firstIndex(where: { $0.id == issue.id }) else { return }
+        let removed = issues[index]
+        issues.remove(at: index)
+        do {
+            try await api.deleteIssue(id: issue.id)
+        } catch {
+            issues.insert(removed, at: min(index, issues.count))
             errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
         }
     }

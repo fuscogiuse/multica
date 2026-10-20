@@ -21,6 +21,10 @@ final class FakeAPI: BoardAPI {
     func createIssue(_ body: CreateIssueBody) async throws -> Issue {
         Issue(id: "new", title: body.title, status: body.status)
     }
+    var failDelete = false
+    func deleteIssue(id: String) async throws {
+        if failDelete { throw APIError.http(status: 403, message: "no") }
+    }
 }
 
 @MainActor
@@ -61,5 +65,18 @@ final class BoardStoreTests: XCTestCase {
         let created = await store.create(CreateIssueBody(title: "New"))
         XCTAssertEqual(created?.title, "New")
         XCTAssertEqual(store.issues.first?.id, "new")
+    }
+
+    func testDeleteRemovesAndRollsBack() async {
+        let api = FakeAPI()
+        api.issuesToReturn = [Issue(id: "1", title: "a", status: "todo"), Issue(id: "2", title: "b", status: "todo")]
+        let store = BoardStore(api: api)
+        await store.refresh()
+        await store.delete(store.issues[0])
+        XCTAssertEqual(store.issues.map(\.id), ["2"])
+        api.failDelete = true
+        await store.delete(store.issues[0])
+        XCTAssertEqual(store.issues.map(\.id), ["2"])
+        XCTAssertEqual(store.errorMessage, "no")
     }
 }

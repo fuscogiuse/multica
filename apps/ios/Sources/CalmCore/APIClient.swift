@@ -208,6 +208,9 @@ extension APIClient {
     public func issue(id: String) async throws -> Issue { try await get("/api/issues/\(id)") }
     public func createIssue(_ body: CreateIssueBody) async throws -> Issue { try await post("/api/issues", body: body) }
     public func updateIssue(id: String, _ body: UpdateIssueBody) async throws -> Issue { try await put("/api/issues/\(id)", body: body) }
+    public func deleteIssue(id: String) async throws {
+        _ = try await send(makeRequest("DELETE", "/api/issues/\(id)"))
+    }
     public func comments(issueId: String) async throws -> [Comment] { try await get("/api/issues/\(issueId)/comments") }
     public func addComment(issueId: String, content: String) async throws -> Comment {
         try await post("/api/issues/\(issueId)/comments", body: CommentBody(content: content))

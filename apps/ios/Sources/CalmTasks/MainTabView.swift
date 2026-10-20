@@ -9,7 +9,8 @@ enum NewTaskMode: String, Identifiable {
 
 struct MainTabView: View {
     @EnvironmentObject var store: BoardStore
-    @StateObject private var sidebar = SidebarState()
+    /// Not observed here: the position changes on every drag step and only the drawer layer needs to redraw.
+    @State private var sidebar = SidebarState()
 
     @AppStorage("calm.tab") private var tab = 0
     @AppStorage("calm.openProject") private var launchProject = ""
@@ -20,10 +21,6 @@ struct MainTabView: View {
     @State private var taskPath = NavigationPath()
     @State private var searchPath = NavigationPath()
     @State private var newTask: NewTaskMode?
-    /// Finger position while dragging the sidebar, from -drawerWidth (closed) to 0 (open). Nil when not dragging.
-    @State private var drag: CGFloat?
-
-    private let drawerWidth: CGFloat = 316
 
     /// Swipe from the left edge only where no screen is pushed, so the back swipe keeps working.
     private var canSwipeOpen: Bool {
@@ -34,9 +31,6 @@ struct MainTabView: View {
         default: return false
         }
     }
-
-    private var drawerX: CGFloat { drag ?? (sidebar.isOpen ? 0 : -drawerWidth) }
-    private var drawerProgress: Double { Double(1 + drawerX / drawerWidth) }
 
     var body: some View {
         ZStack(alignment: .leading) {
@@ -69,24 +63,21 @@ struct MainTabView: View {
                     .padding(.bottom, 68)
                 }
             }
-            .simultaneousGesture(openGesture)
+            .overlay(alignment: .leading) {
+                if canSwipeOpen {
+                    EdgeSwipe(
+                        onChanged: { sidebar.follow($0, from: -SidebarState.width) },
+                        onEnded: { translation, velocity in
+                            sidebar.settle(open: translation > SidebarState.width * 0.4 || velocity > 600)
+                        })
+                        .frame(width: 22)
+                        .ignoresSafeArea()
+                }
+            }
 
-            Color.black.opacity(0.32 * drawerProgress)
-                .ignoresSafeArea()
-                .allowsHitTesting(sidebar.isOpen || drag != nil)
-                .onTapGesture { close() }
-                .gesture(closeGesture)
-                .accessibilityHidden(true)
-
-            SidebarView(
+            DrawerLayer(
                 onToday: { tab = 0; todayPath = NavigationPath(); close() },
                 onScope: { newScope in select(newScope) })
-                .frame(width: drawerWidth)
-                .shadow(color: .black.opacity(0.18 * drawerProgress), radius: 14, x: 6)
-                .offset(x: drawerX)
-                .gesture(closeGesture)
-                .allowsHitTesting(sidebar.isOpen || drag != nil)
-                .accessibilityHidden(!sidebar.isOpen)
         }
         .environmentObject(sidebar)
         .sheet(item: $newTask) { mode in
@@ -133,37 +124,6 @@ struct MainTabView: View {
         }
     }
 
-    /// Pull the sidebar out from the left edge. The drawer follows the finger.
-    private var openGesture: some Gesture {
-        DragGesture(minimumDistance: 8)
-            .onChanged { value in
-                guard canSwipeOpen, !sidebar.isOpen, value.startLocation.x < 28,
-                      abs(value.translation.width) > abs(value.translation.height) else { return }
-                drag = max(-drawerWidth, min(0, -drawerWidth + value.translation.width))
-            }
-            .onEnded { value in
-                guard let current = drag else { return }
-                let open = current > -drawerWidth * 0.6 || value.predictedEndTranslation.width > drawerWidth * 0.5
-                drag = nil
-                withAnimation(.easeOut(duration: 0.22)) { sidebar.isOpen = open }
-            }
-    }
-
-    /// Push the open sidebar back to the left, or tap outside it.
-    private var closeGesture: some Gesture {
-        DragGesture(minimumDistance: 8)
-            .onChanged { value in
-                guard sidebar.isOpen else { return }
-                drag = max(-drawerWidth, min(0, value.translation.width))
-            }
-            .onEnded { value in
-                guard drag != nil else { return }
-                let stayOpen = (drag ?? 0) > -drawerWidth * 0.35 && value.predictedEndTranslation.width > -drawerWidth * 0.5
-                drag = nil
-                withAnimation(.easeOut(duration: 0.2)) { sidebar.isOpen = stayOpen }
-            }
-    }
-
     private func select(_ newScope: BoardScope) {
         scope = newScope
         taskPath = NavigationPath()
@@ -171,9 +131,7 @@ struct MainTabView: View {
         close()
     }
 
-    private func close() {
-        sidebar.close()
-    }
+    private func close() { sidebar.close() }
 
     /// Launch arguments used by the CI screenshots: `-calm.openProject <id>` and `-calm.sidebar open|manage`.
     private func applyLaunchHooks(_ projects: [Project]) {
@@ -186,5 +144,46 @@ struct MainTabView: View {
             sidebar.open()
             launchSidebar = ""
         }
+    }
+}
+
+/// The dimmed backdrop and the sidebar. It is the only part that redraws while the sidebar moves.
+struct DrawerLayer: View {
+    @EnvironmentObject var sidebar: SidebarState
+
+    let onToday: () -> Void
+    let onScope: (BoardScope) -> Void
+
+    private var closeDrag: some Gesture {
+        DragGesture(minimumDistance: 8, coordinateSpace: .global)
+            .onChanged { value in
+                guard abs(value.translation.width) > abs(value.translation.height) else { return }
+                sidebar.follow(value.translation.width, from: 0)
+            }
+            .onEnded { value in
+                let velocity = value.predictedEndTranslation.width - value.translation.width
+                sidebar.settle(open: sidebar.x > -SidebarState.width * 0.45 && velocity > -200)
+            }
+    }
+
+    var body: some View {
+        ZStack(alignment: .leading) {
+            Color.black.opacity(0.32 * sidebar.progress)
+                .ignoresSafeArea()
+                .contentShape(Rectangle())
+                .onTapGesture { sidebar.close() }
+                .gesture(closeDrag)
+                .accessibilityHidden(true)
+
+            SidebarView(onToday: onToday, onScope: onScope)
+                .equatable()
+                .frame(width: SidebarState.width)
+                .background(Color.white)
+                .shadow(color: .black.opacity(0.18 * sidebar.progress), radius: 14, x: 6)
+                .offset(x: sidebar.x)
+                .gesture(closeDrag)
+                .accessibilityHidden(!sidebar.isVisible)
+        }
+        .allowsHitTesting(sidebar.isVisible)
     }
 }

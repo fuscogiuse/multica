@@ -68,6 +68,8 @@ final class DemoAPI: BoardAPI {
         return issueList[index]
     }
 
+    func deleteIssue(id: String) async throws { issueList.removeAll { $0.id == id } }
+
     func createIssue(_ body: CreateIssueBody) async throws -> Issue {
         let issue = Issue(id: UUID().uuidString, identifier: "SLD-\(issueList.count + 1)", title: body.title,
                           status: body.status, priority: body.priority, projectId: body.projectId, dueDate: body.dueDate)

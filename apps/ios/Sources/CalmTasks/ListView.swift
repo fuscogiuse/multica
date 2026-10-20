@@ -8,6 +8,8 @@ struct ListView: View {
     /// Empty sections start folded. These are the empty ones the user opened.
     @AppStorage("calm.expandedEmpty") private var expandedRaw = ""
     @State private var newTaskColumn: StatusEntry?
+    @State private var dateIssue: Issue?
+    @State private var deleteIssue: Issue?
     /// The client the list belongs to, used for the "Nuovo task" row.
     var project: Project?
     let resolver: BoardResolver
@@ -51,8 +53,22 @@ struct ListView: View {
                             .listRowInsets(EdgeInsets(top: 0, leading: 12, bottom: 0, trailing: 12))
                             .listRowBackground(Color.white)
                             .listRowSeparatorTint(Color.black.opacity(0.06))
-                            .swipeActions(edge: .trailing) {
-                                Button("Fatto") { Task { await store.move(issue, to: resolver.doneKey) } }.tint(Calm.green)
+                            // Swipe right: done. Swipe left: date, archive, delete, like Mail.
+                            .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                                Button { Task { await store.move(issue, to: resolver.doneKey) } } label: {
+                                    Label("Fatto", systemImage: "checkmark")
+                                }
+                                .tint(Calm.green)
+                            }
+                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                Button { deleteIssue = issue } label: { Label("Elimina", systemImage: "trash") }
+                                    .tint(Calm.red)
+                                Button { Task { await store.move(issue, to: "cancelled") } } label: {
+                                    Label("Archivia", systemImage: "archivebox")
+                                }
+                                .tint(Calm.orange)
+                                Button { dateIssue = issue } label: { Label("Data", systemImage: "calendar") }
+                                    .tint(Calm.blue)
                             }
                             .contextMenu { MoveMenu(issue: issue, resolver: resolver) }
                         }
@@ -105,5 +121,77 @@ struct ListView: View {
         .sheet(item: $newTaskColumn) { column in
             NewTaskView(project: project, status: column.key)
         }
+        .sheet(item: $dateIssue) { issue in DueDateSheet(issue: issue) }
+        .confirmationDialog("Eliminare questo task?", isPresented: Binding(
+            get: { deleteIssue != nil }, set: { if !$0 { deleteIssue = nil } }), titleVisibility: .visible) {
+            Button("Elimina", role: .destructive) {
+                if let issue = deleteIssue { Task { await store.delete(issue) } }
+                deleteIssue = nil
+            }
+            Button("Annulla", role: .cancel) { deleteIssue = nil }
+        } message: {
+            Text(deleteIssue?.title ?? "")
+        }
+    }
+}
+
+/// Pick or clear the due date of one task.
+struct DueDateSheet: View {
+    @EnvironmentObject var store: BoardStore
+    @Environment(\.dismiss) private var dismiss
+    let issue: Issue
+    @State private var date = Date()
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 12) {
+                HStack(spacing: 8) {
+                    quick("Oggi", 0)
+                    quick("Domani", 1)
+                    quick("Tra una settimana", 7)
+                }
+                DatePicker("", selection: $date, displayedComponents: .date)
+                    .datePickerStyle(.graphical)
+                    .labelsHidden()
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 16)
+            .navigationTitle("Scadenza")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Annulla") { dismiss() } }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Fine") {
+                        Task { await store.update(issue, UpdateIssueBody(dueDate: DateText.day(from: date))) }
+                        dismiss()
+                    }
+                    .fontWeight(.semibold)
+                }
+                ToolbarItem(placement: .bottomBar) {
+                    if issue.dueDay != nil {
+                        Button("Togli la data", role: .destructive) {
+                            Task { await store.update(issue, UpdateIssueBody(clearDueDate: true)) }
+                            dismiss()
+                        }
+                    }
+                }
+            }
+            .onAppear {
+                if let day = issue.dueDay, let existing = DateText.date(from: day) { date = existing }
+            }
+        }
+        .presentationDetents([.medium, .large])
+    }
+
+    private func quick(_ title: String, _ days: Int) -> some View {
+        Button(title) {
+            if let target = Calendar.current.date(byAdding: .day, value: days, to: Date()) { date = target }
+        }
+        .font(.system(size: 14))
+        .foregroundStyle(Calm.ink)
+        .padding(.horizontal, 12)
+        .frame(minHeight: 36)
+        .background(Capsule().fill(Calm.sand))
+        .buttonStyle(.plain)
     }
 }

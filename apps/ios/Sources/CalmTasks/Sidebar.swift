@@ -8,12 +8,29 @@ enum BoardScope: Hashable {
     case project(String)
 }
 
-/// Open and close state of the sidebar, shared with the screens that carry the menu button.
+/// Position of the sidebar, shared with the screens that carry the menu button.
+/// `x` runs from -width (closed) to 0 (open). Only the sidebar layer and the menu button watch it,
+/// so dragging does not redraw the screens underneath.
 @MainActor
 final class SidebarState: ObservableObject {
-    @Published var isOpen = false
-    func open() { withAnimation(.easeOut(duration: 0.22)) { isOpen = true } }
-    func close() { withAnimation(.easeOut(duration: 0.2)) { isOpen = false } }
+    static let width: CGFloat = 308
+
+    @Published var x: CGFloat = -SidebarState.width
+
+    var isVisible: Bool { x > -Self.width + 0.5 }
+    var isOpen: Bool { x > -Self.width / 2 }
+    var progress: Double { Double(max(0, min(1, 1 + x / Self.width))) }
+
+    func open() { settle(open: true) }
+    func close() { settle(open: false) }
+
+    func settle(open: Bool) {
+        withAnimation(.interpolatingSpring(stiffness: 260, damping: 30)) { x = open ? 0 : -Self.width }
+    }
+
+    func follow(_ translation: CGFloat, from start: CGFloat) {
+        x = max(-Self.width, min(0, start + translation))
+    }
 }
 
 /// Clients the user chose to hide from the sidebar. Stored on this device as a comma separated list of project ids.
@@ -27,7 +44,10 @@ enum HiddenProjects {
     }
 }
 
-struct SidebarView: View {
+struct SidebarView: View, Equatable {
+    /// The inputs are closures, so the sidebar is redrawn only when the data it watches changes, not on every drag step.
+    static func == (lhs: SidebarView, rhs: SidebarView) -> Bool { true }
+
     @EnvironmentObject var store: BoardStore
     @EnvironmentObject var model: AppModel
     @EnvironmentObject var sidebar: SidebarState
