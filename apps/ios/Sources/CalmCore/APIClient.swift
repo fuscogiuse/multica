@@ -141,11 +141,31 @@ public struct UpdateIssueBody: Encodable, Sendable {
     public var status: String?
     public var priority: String?
     public var dueDate: String?
+    /// Sends `"due_date": null`, which removes the due date.
+    public var clearDueDate = false
 
     public init(title: String? = nil, description: String? = nil, status: String? = nil,
-                priority: String? = nil, dueDate: String? = nil) {
+                priority: String? = nil, dueDate: String? = nil, clearDueDate: Bool = false) {
         self.title = title; self.description = description; self.status = status
-        self.priority = priority; self.dueDate = dueDate
+        self.priority = priority; self.dueDate = dueDate; self.clearDueDate = clearDueDate
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case title, description, status, priority
+        case dueDate = "due_date"
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encodeIfPresent(title, forKey: .title)
+        try c.encodeIfPresent(description, forKey: .description)
+        try c.encodeIfPresent(status, forKey: .status)
+        try c.encodeIfPresent(priority, forKey: .priority)
+        if clearDueDate {
+            try c.encodeNil(forKey: .dueDate)
+        } else {
+            try c.encodeIfPresent(dueDate, forKey: .dueDate)
+        }
     }
 }
 

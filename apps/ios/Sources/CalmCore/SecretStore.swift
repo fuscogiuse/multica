@@ -54,9 +54,11 @@ public struct Session: Equatable, Sendable {
     public var serverURL: URL
     public var token: String
     public var workspaceId: String
+    public var workspaceSlug: String?
 
-    public init(serverURL: URL, token: String, workspaceId: String) {
+    public init(serverURL: URL, token: String, workspaceId: String, workspaceSlug: String? = nil) {
         self.serverURL = serverURL; self.token = token; self.workspaceId = workspaceId
+        self.workspaceSlug = workspaceSlug
     }
 }
 
@@ -67,13 +69,14 @@ public final class SessionStore {
     public func load() -> Session? {
         guard let server = store.get("server"), let url = URL(string: server),
               let token = store.get("token"), let workspace = store.get("workspace") else { return nil }
-        return Session(serverURL: url, token: token, workspaceId: workspace)
+        return Session(serverURL: url, token: token, workspaceId: workspace, workspaceSlug: store.get("slug"))
     }
 
     public func save(_ session: Session) {
         store.set(session.serverURL.absoluteString, for: "server")
         store.set(session.token, for: "token")
         store.set(session.workspaceId, for: "workspace")
+        store.set(session.workspaceSlug, for: "slug")
     }
 
     public func savedServer() -> String? { store.get("server") }
@@ -82,5 +85,6 @@ public final class SessionStore {
     public func clearToken() {
         store.set(nil, for: "token")
         store.set(nil, for: "workspace")
+        store.set(nil, for: "slug")
     }
 }

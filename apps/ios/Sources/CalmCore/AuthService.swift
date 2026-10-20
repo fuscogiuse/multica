@@ -28,7 +28,7 @@ public final class AuthService {
         guard let workspace = all.first(where: { $0.slug == preferredSlug }) ?? all.first else {
             throw APIError.http(status: 404, message: "Nessun workspace trovato per questo account.")
         }
-        let session = Session(serverURL: client.baseURL, token: token, workspaceId: workspace.id)
+        let session = Session(serverURL: client.baseURL, token: token, workspaceId: workspace.id, workspaceSlug: workspace.slug)
         sessions.save(session)
         client.workspaceId = workspace.id
         return session
