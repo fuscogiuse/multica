@@ -15,6 +15,10 @@ public struct Company: Codable, Identifiable, Hashable, Sendable {
     public var name: String
     public var color: String?
     public var position: Int?
+
+    public init(id: String, name: String, color: String? = nil, position: Int? = nil) {
+        self.id = id; self.name = name; self.color = color; self.position = position
+    }
 }
 
 public struct CompanyList: Codable, Sendable {
@@ -30,6 +34,13 @@ public struct Project: Codable, Identifiable, Hashable, Sendable {
     public var doneCount: Int?
     public var workflowId: String?
     public var companyId: String?
+
+    public init(id: String, title: String, icon: String? = nil, status: String? = nil, issueCount: Int? = nil,
+                doneCount: Int? = nil, workflowId: String? = nil, companyId: String? = nil) {
+        self.id = id; self.title = title; self.icon = icon; self.status = status
+        self.issueCount = issueCount; self.doneCount = doneCount
+        self.workflowId = workflowId; self.companyId = companyId
+    }
 }
 
 public struct ProjectList: Codable, Sendable {
