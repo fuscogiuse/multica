@@ -41,7 +41,8 @@ export async function loadRuntimeConfig(options: {
 }
 
 export function desktopConfigPath(): string {
-  return join(app.getPath("home"), ".multica", "desktop.json");
+  // Calm UI fork: own file, so the official Multica app keeps its own server.
+  return join(app.getPath("home"), ".multica", "calm-desktop.json");
 }
 
 function isMissingFileError(err: unknown): boolean {

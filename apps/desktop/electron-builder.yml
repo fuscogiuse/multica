@@ -1,5 +1,6 @@
-appId: ai.multica.desktop
-productName: Multica
+# Calm UI fork: own identity so it installs next to the official Multica app.
+appId: ai.calmtasks.desktop
+productName: Calm Tasks
 directories:
   buildResources: build
 files:
@@ -30,9 +31,9 @@ extraResources:
   - from: ../../NOTICE
     to: NOTICE
 protocols:
-  - name: Multica
+  - name: Calm Tasks
     schemes:
-      - multica
+      - calmtasks
 asarUnpack:
   - resources/**
 mac:
@@ -44,14 +45,14 @@ mac:
   # `${name}` produces for scoped package names.
   # Naming scheme: multica-desktop-<version>-<platform>-<arch>.<ext>
   # so the filename alone surfaces kind, version, platform, and CPU arch.
-  artifactName: multica-desktop-${version}-mac-${arch}.${ext}
+  artifactName: calm-tasks-${version}-mac-${arch}.${ext}
   # Notarize via notarytool. Requires APPLE_ID + APPLE_APP_SPECIFIC_PASSWORD
   # + APPLE_TEAM_ID env vars at package time. Non-mac contributors are
   # unaffected because `pnpm package` already requires the Developer ID
   # signing cert — notarization is a strict superset.
   notarize: true
 dmg:
-  artifactName: multica-desktop-${version}-mac-${arch}.${ext}
+  artifactName: calm-tasks-${version}-mac-${arch}.${ext}
 linux:
   # Override the Linux executable name to avoid leaking the scoped npm
   # package name (`@multica/desktop`) into the installed binary, the

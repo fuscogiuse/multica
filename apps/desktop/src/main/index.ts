@@ -125,7 +125,8 @@ if (process.platform !== "win32") {
   ]);
 }
 
-const PROTOCOL = "multica";
+// Calm UI fork: own scheme so it does not take over the official app's links.
+const PROTOCOL = "calmtasks";
 const devLog = is.dev ? createBestEffortDevLog() : undefined;
 
 // Where the main process parks a freeze/crash breadcrumb until the next
@@ -575,7 +576,9 @@ if (is.dev) {
   // to "Multica", but anchoring it here makes WM_CLASS ↔ StartupWMClass
   // (declared in electron-builder.yml) survive a regression in
   // productName / the build pipeline. Must run before requestSingleInstanceLock().
-  app.setName("Multica");
+  // Calm UI fork: own name, so userData and the single-instance lock never
+  // collide with the official Multica app installed next to it.
+  app.setName("Calm Tasks");
 }
 
 // --- Protocol registration -----------------------------------------------
