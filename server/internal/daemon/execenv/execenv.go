@@ -210,6 +210,9 @@ type TaskContextForEnv struct {
 	// Workspace Context edit does. Empty — including on old servers that never
 	// send the field — renders the built-in-only line byte-identical to before.
 	IssueStatuses []IssueStatusForEnv
+	// BoardColumns are the visible calm board columns in order, each with the
+	// user's instruction (Calm UI fork).
+	BoardColumns []IssueStatusForEnv
 	// IssueStatusesOmitted is the count of active custom statuses the server's
 	// cap dropped from IssueStatuses, so the brief can disclose truncation
 	// instead of presenting a partial catalog as complete.

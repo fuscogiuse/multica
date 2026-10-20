@@ -48,7 +48,7 @@ function useNow(intervalMs = 30_000) {
 }
 
 /** Completing fills the circle, lets the row fade, then writes status=done. */
-function useComplete() {
+export function useComplete() {
   const update = useUpdateIssue();
   const [completing, setCompleting] = useState<Set<string>>(new Set());
   const complete = (id: string) => {
@@ -76,20 +76,21 @@ function AssigneeChip({ issue, compact }: { issue: Issue; compact?: boolean }) {
   const name = getActorName(issue.assignee_type, issue.assignee_id);
   if (compact) return <ActorAvatar actorType={issue.assignee_type} actorId={issue.assignee_id} size="sm" />;
   return (
-    <span className="inline-flex h-8 max-w-[180px] shrink-0 items-center gap-2 rounded-full bg-[#f6f4f1] pl-1 pr-3 text-[13px] text-[#4b4b4b]">
-      <ActorAvatar actorType={issue.assignee_type} actorId={issue.assignee_id} size="md" />
+    <span className="inline-flex h-6 max-w-[160px] shrink-0 items-center gap-1.5 rounded-full bg-[#f6f4f1] pl-0.5 pr-2.5 text-xs text-[#4b4b4b]">
+      <ActorAvatar actorType={issue.assignee_type} actorId={issue.assignee_id} size="sm" />
       <span className="truncate">{name}</span>
     </span>
   );
 }
 
-function TaskRow({
+export function TaskRow({
   issue,
   project,
   companyName,
   running,
   completing,
   onComplete,
+  hideStatus,
 }: {
   issue: Issue;
   project?: Project;
@@ -97,6 +98,7 @@ function TaskRow({
   running?: AgentTask;
   completing: boolean;
   onComplete: () => void;
+  hideStatus?: boolean;
 }) {
   const paths = useWorkspacePaths();
   const meta = [companyName, project?.title, issue.identifier, issue.due_date ? formatDueIt(issue.due_date) : null].filter(Boolean);
@@ -104,16 +106,16 @@ function TaskRow({
     <AppLink
       href={paths.issueDetail(issue.identifier || issue.id)}
       className={cn(
-        "flex items-start gap-3.5 border-b border-black/[0.08] py-4 text-[#202020] no-underline transition-opacity duration-300 md:items-center md:gap-4 md:px-1.5",
+        "flex items-start gap-3 border-b border-black/[0.06] py-2.5 text-[#202020] no-underline transition-opacity duration-300 hover:bg-[#fcfaf8] md:items-center md:px-1.5",
         completing && "opacity-40",
       )}
     >
       <span className="pt-px md:pt-0">
-        <PriorityCircle priority={issue.priority} done={completing} onComplete={onComplete} label={`Completa "${issue.title}"`} />
+        <PriorityCircle priority={issue.priority} done={completing} size={18} onComplete={onComplete} label={`Completa "${issue.title}"`} />
       </span>
-      <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-        <span className={cn("text-base font-medium leading-snug md:text-[17px]", completing && "line-through")}>{issue.title}</span>
-        <span className="flex min-w-0 items-center gap-2.5 text-[13px] text-[#666666] md:gap-3.5">
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <span className={cn("text-sm leading-snug", completing && "line-through")}>{issue.title}</span>
+        <span className="flex min-w-0 items-center gap-2.5 text-xs text-[#666666]">
           {meta.map((m, i) => (
             <span key={i} className="truncate">{m}</span>
           ))}
@@ -128,22 +130,22 @@ function TaskRow({
         </span>
       </div>
       <span className="hidden md:inline-flex"><AssigneeChip issue={issue} /></span>
-      <span className="hidden w-[110px] shrink-0 text-right text-[13px] text-[#666666] md:inline">{statusLabel(issue)}</span>
+      {hideStatus ? null : <span className="hidden w-[100px] shrink-0 text-right text-xs text-[#666666] md:inline">{statusLabel(issue)}</span>}
     </AppLink>
   );
 }
 
-function QuickAdd() {
+export function QuickAdd({ projectId, status = "todo", className }: { projectId?: string | null; status?: string; className?: string }) {
   const create = useCreateIssue();
   const [title, setTitle] = useState("");
   const submit = () => {
     const t = title.trim();
     if (!t) return;
-    create.mutate({ title: t, status: "todo" }, { onSuccess: () => setTitle("") });
+    create.mutate({ title: t, status, ...(projectId ? { project_id: projectId } : {}) }, { onSuccess: () => setTitle("") });
   };
   return (
-    <label className="flex h-12 w-full items-center gap-2.5 rounded-xl border border-black/[0.08] bg-[#f6f4f1] px-4 lg:w-[420px]">
-      <span className="text-[#666666]"><PlusIcon /></span>
+    <label className={cn("flex h-9 w-full items-center gap-2 rounded-lg border border-black/[0.08] bg-[#f6f4f1] px-3 lg:w-[340px]", className)}>
+      <span className="text-[#666666]"><PlusIcon size={15} /></span>
       <span className="sr-only">Nuovo task</span>
       <input
         type="text"
@@ -154,7 +156,7 @@ function QuickAdd() {
         }}
         disabled={create.isPending}
         placeholder="Aggiungi un task… premi Invio"
-        className="min-w-0 flex-1 border-0 bg-transparent text-[15px] text-[#202020] outline-none placeholder:text-[#666666]"
+        className="min-w-0 flex-1 border-0 bg-transparent text-[13px] text-[#202020] outline-none placeholder:text-[#666666]"
       />
     </label>
   );
@@ -173,19 +175,19 @@ function FocusTimer({ issue }: { issue: Issue }) {
   const mm = String(Math.floor(left / 60_000)).padStart(2, "0");
   const ss = String(Math.floor((left % 60_000) / 1000)).padStart(2, "0");
   return (
-    <div className="flex flex-col gap-3.5 rounded-[18px] bg-[#202020] p-6 text-white">
-      <span className="text-sm text-white/70">Adesso</span>
-      <AppLink href={paths.issueDetail(issue.identifier || issue.id)} className="text-[22px] font-medium leading-tight text-white no-underline hover:underline">
+    <div className="flex flex-col gap-2.5 rounded-xl bg-[#202020] p-4 text-white">
+      <span className="text-xs text-white/70">Adesso</span>
+      <AppLink href={paths.issueDetail(issue.identifier || issue.id)} className="text-[15px] font-medium leading-snug text-white no-underline hover:underline">
         {issue.title}
       </AppLink>
-      <span className="text-5xl font-normal tabular-nums tracking-[-0.02em]">{mm}:{ss}</span>
+      <span className="text-[32px] font-normal leading-none tabular-nums tracking-[-0.02em]">{mm}:{ss}</span>
       <button
         type="button"
         onClick={() => {
           setNow(Date.now());
           setEndsAt(endsAt ? null : Date.now() + 25 * 60_000);
         }}
-        className="h-11 rounded-xl bg-[#dc4c3e] text-[15px] font-semibold text-white active:scale-[0.98]"
+        className="h-8 rounded-lg bg-[#dc4c3e] text-[13px] font-semibold text-white active:scale-[0.98]"
       >
         {endsAt ? "Ferma focus" : "Inizia focus"}
       </button>
@@ -194,7 +196,7 @@ function FocusTimer({ issue }: { issue: Issue }) {
 }
 
 function SectionTitle({ children, className }: { children: ReactNode; className?: string }) {
-  return <h2 className={cn("mb-1.5 mt-2 text-[15px] font-semibold text-[#202020]", className)}>{children}</h2>;
+  return <h2 className={cn("mb-1 mt-2 text-[13px] font-semibold text-[#202020]", className)}>{children}</h2>;
 }
 
 export function CalmToday({ toggle }: { toggle: ReactNode }) {
@@ -249,19 +251,19 @@ export function CalmToday({ toggle }: { toggle: ReactNode }) {
   return (
     <div className="flex h-full min-h-0 flex-col overflow-y-auto bg-white font-sans text-[#202020]">
       {/* Header */}
-      <header className="flex flex-col gap-4 px-[22px] pb-2.5 pt-6 md:px-14 md:pb-5 md:pt-9 lg:flex-row lg:items-center">
+      <header className="flex flex-col gap-3 px-[22px] pb-2 pt-5 md:px-8 md:pb-3 md:pt-6 lg:flex-row lg:items-center">
         <div className="flex min-w-0 flex-1 items-start gap-3">
           <div className="min-w-0 flex-1">
-            <h1 className="m-0 text-[30px] font-semibold leading-tight tracking-[-0.01em] md:text-[34px] md:font-medium md:tracking-[-0.02em]">
+            <h1 className="m-0 text-xl font-semibold leading-tight tracking-[-0.01em]">
               <span className="md:hidden">Oggi</span>
               <span className="hidden md:inline">{heading}</span>
             </h1>
-            <p className="mt-1 text-sm text-[#666666] md:mt-1.5 md:text-[15px]">
+            <p className="m-0 mt-0.5 text-[13px] text-[#666666]">
               <span className="hidden md:inline">{todayLine(now)} · </span>
               {focus.length} task in focus · {openCount} aperti
             </p>
           </div>
-          <div className="lg:hidden">{toggle}</div>
+          <div>{toggle}</div>
         </div>
         <div className="hidden items-center gap-3 md:flex">
           <QuickAdd />
@@ -284,7 +286,7 @@ export function CalmToday({ toggle }: { toggle: ReactNode }) {
         </div>
       ) : null}
 
-      <div className="flex min-h-0 flex-1 gap-8 px-[22px] pb-10 pt-1.5 md:px-14 md:pt-2">
+      <div className="flex min-h-0 flex-1 gap-6 px-[22px] pb-10 pt-1 md:px-8">
         <section className="flex min-w-0 flex-1 flex-col">
           <SectionTitle className="hidden md:block">Focus di oggi</SectionTitle>
           {loading ? (
@@ -294,12 +296,12 @@ export function CalmToday({ toggle }: { toggle: ReactNode }) {
               ))}
             </div>
           ) : focus.length === 0 ? (
-            <p className="py-6 text-[15px] text-[#666666]">Niente in programma. Respira, oppure aggiungi un task.</p>
+            <p className="py-4 text-sm text-[#666666]">Niente in programma. Respira, oppure aggiungi un task.</p>
           ) : (
             focus.map(row)
           )}
 
-          <SectionTitle className="mt-6 text-sm text-[#4b4b4b] md:mt-[26px] md:text-[15px] md:text-[#202020]">
+          <SectionTitle className="mt-6">
             Con Claude adesso
           </SectionTitle>
           {withClaude.length === 0 ? (
@@ -311,7 +313,7 @@ export function CalmToday({ toggle }: { toggle: ReactNode }) {
                 <AppLink
                   key={i.id}
                   href={paths.issueDetail(i.identifier || i.id)}
-                  className="flex items-center gap-3 rounded-[14px] py-3 text-[15px] text-[#4b4b4b] no-underline hover:bg-[#fcfaf8] md:gap-[18px] md:px-[22px] md:py-3.5"
+                  className="flex items-center gap-3 rounded-lg py-2 text-sm text-[#4b4b4b] no-underline hover:bg-[#fcfaf8] md:px-1.5"
                 >
                   <RunningDot className="mx-[7px]" />
                   <span className="min-w-0 flex-1 truncate">{i.title}</span>
@@ -329,7 +331,7 @@ export function CalmToday({ toggle }: { toggle: ReactNode }) {
               type="button"
               onClick={() => setShowLater((v) => !v)}
               aria-expanded={showLater}
-              className="mt-3 h-11 self-start rounded-xl text-sm text-[#4b4b4b] md:mt-[18px] md:border md:border-dashed md:border-black/20 md:px-[18px] md:hover:bg-[#fcfaf8]"
+              className="mt-3 h-8 self-start rounded-lg px-3 text-[13px] text-[#4b4b4b] ring-1 ring-black/[0.08] hover:bg-[#fcfaf8]"
             >
               {showLater ? "Nascondi" : `Mostra più tardi (${later.length} ${later.length === 1 ? "task nascosto" : "task nascosti"})`}
             </button>
@@ -348,10 +350,10 @@ export function CalmToday({ toggle }: { toggle: ReactNode }) {
         </section>
 
         {/* Desktop right column */}
-        <aside className="hidden w-[300px] shrink-0 flex-col gap-4 lg:flex">
+        <aside className="hidden w-[260px] shrink-0 flex-col gap-3 lg:flex">
           {top ? <FocusTimer issue={top} /> : null}
           {recent.length > 0 ? (
-            <div className="flex flex-col gap-3 rounded-[18px] bg-[#f6f4f1] p-[22px] text-sm text-[#4b4b4b]">
+            <div className="flex flex-col gap-2 rounded-xl bg-[#f6f4f1] p-4 text-[13px] text-[#4b4b4b]">
               <span className="font-semibold text-[#202020]">Ultimi aggiornamenti</span>
               {recent.map((i) => (
                 <AppLink key={i.id} href={paths.issueDetail(i.identifier || i.id)} className="text-[#4b4b4b] no-underline hover:text-[#202020]">

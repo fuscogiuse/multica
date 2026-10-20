@@ -25,6 +25,7 @@ import {
 import { cn } from "@multica/ui/lib/utils";
 import { AppLink, useNavigation } from "../navigation";
 import { CALM } from "./shared";
+import { useCalmHref, useCalmVista } from "./calm-issues";
 
 // Calm UI fork: companies in the sidebar. A company groups projects on the one
 // shared board and picks the Claude profile its agents run under.
@@ -110,9 +111,9 @@ export function CompanyDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[440px] rounded-[18px] bg-white p-6 font-sans text-[#202020]">
-        <DialogTitle className="text-xl font-semibold">{company ? "Modifica company" : "Nuova company"}</DialogTitle>
-        <form onSubmit={submit} className="mt-4 flex flex-col gap-5">
+      <DialogContent className="grid-cols-[minmax(0,1fr)] gap-3 bg-white p-5 font-sans text-[#202020] sm:max-w-[460px]">
+        <DialogTitle className="text-base font-semibold">{company ? "Modifica company" : "Nuova company"}</DialogTitle>
+        <form onSubmit={submit} className="flex min-w-0 flex-col gap-4">
           <label className="flex flex-col gap-1.5 text-sm">
             <span className="text-[#666666]">Nome</span>
             <input
@@ -123,7 +124,7 @@ export function CompanyDialog({
                 setError(null);
               }}
               placeholder="SOLID"
-              className="h-11 rounded-[10px] border border-black/10 px-3 text-[15px] outline-none focus:border-[#dc4c3e]"
+              className="h-9 rounded-lg border border-black/10 px-3 text-sm outline-none focus:border-[#dc4c3e]"
             />
           </label>
 
@@ -137,7 +138,7 @@ export function CompanyDialog({
                   aria-label={`Colore ${c}`}
                   aria-pressed={color === c}
                   onClick={() => setColor(c)}
-                  className={cn("size-7 rounded-full ring-offset-2", color === c && "ring-2 ring-[#202020]")}
+                  className={cn("size-6 rounded-full ring-offset-2", color === c && "ring-2 ring-[#202020]")}
                   style={{ background: c }}
                 />
               ))}
@@ -148,7 +149,7 @@ export function CompanyDialog({
             <span className="text-[#666666]">Profilo Claude</span>
             <p className="m-0 text-xs text-[#666666]">Gli agenti usano questo profilo per i task dei progetti di questa company.</p>
             {profiles.length > 0 ? (
-              <div className="flex flex-col gap-1">
+              <div className="flex max-h-[220px] flex-col gap-0.5 overflow-y-auto rounded-lg border border-black/[0.06] p-1">
                 <ProfileOption label="Profilo predefinito del Mac" sub="Nessuna scelta" checked={dir === ""} onSelect={() => setDir("")} />
                 {profiles.map((p) => (
                   <ProfileOption key={p.dir} label={p.name} sub={p.dir} checked={dir === p.dir} onSelect={() => setDir(p.dir)} />
@@ -160,7 +161,7 @@ export function CompanyDialog({
               onChange={(e) => setDir(e.target.value)}
               placeholder="~/.claude-solid"
               className={cn(
-                "h-10 rounded-[10px] border border-black/10 px-3 font-mono text-[13px] outline-none focus:border-[#dc4c3e]",
+                "h-9 min-w-0 rounded-lg border border-black/10 px-3 font-mono text-xs outline-none focus:border-[#dc4c3e]",
                 profiles.length > 0 && knownDir && "text-[#666666]",
               )}
             />
@@ -178,16 +179,16 @@ export function CompanyDialog({
                   await remove.mutateAsync(company.id);
                   onOpenChange(false);
                 }}
-                className="h-10 rounded-[10px] px-3 text-sm text-[#d1453b] hover:bg-[#fbe4e2]"
+                className="h-8 rounded-lg px-3 text-[13px] text-[#d1453b] hover:bg-[#fbe4e2]"
               >
                 Elimina
               </button>
             ) : null}
             <span className="flex-1" />
-            <button type="button" onClick={() => onOpenChange(false)} className="h-10 rounded-[10px] px-4 text-sm text-[#4b4b4b] hover:bg-[#f6f4f1]">
+            <button type="button" onClick={() => onOpenChange(false)} className="h-8 rounded-lg px-3 text-[13px] text-[#4b4b4b] hover:bg-[#f6f4f1]">
               Annulla
             </button>
-            <button type="submit" className="h-10 rounded-[10px] bg-[#dc4c3e] px-4 text-sm font-semibold text-white">
+            <button type="submit" className="h-8 rounded-lg bg-[#dc4c3e] px-3 text-[13px] font-semibold text-white">
               {company ? "Salva" : "Crea company"}
             </button>
           </div>
@@ -204,13 +205,13 @@ function ProfileOption({ label, sub, checked, onSelect }: { label: string; sub: 
       onClick={onSelect}
       aria-pressed={checked}
       className={cn(
-        "flex items-center gap-3 rounded-[10px] px-3 py-2 text-left",
+        "flex min-w-0 items-center gap-2.5 rounded-md px-2.5 py-1.5 text-left",
         checked ? "bg-[#fbe4e2]" : "hover:bg-[#f6f4f1]",
       )}
     >
-      <span className={cn("size-4 shrink-0 rounded-full border-2", checked ? "border-[#dc4c3e] bg-[#dc4c3e]" : "border-black/25")} />
-      <span className="flex min-w-0 flex-col">
-        <span className="text-sm text-[#202020]">{label}</span>
+      <span className={cn("size-3.5 shrink-0 rounded-full border-2", checked ? "border-[#dc4c3e] bg-[#dc4c3e]" : "border-black/25")} />
+      <span className="flex min-w-0 flex-1 flex-col">
+        <span className="truncate text-[13px] text-[#202020]">{label}</span>
         <span className="truncate font-mono text-[11px] text-[#666666]">{sub}</span>
       </span>
     </button>
@@ -263,11 +264,11 @@ function ProjectLink({
   const setCompany = useSetProjectCompany();
   const paths = useWorkspacePaths();
   return (
-    <div className={cn("group/project flex h-8 items-center rounded-lg pr-1", active ? "bg-white" : "hover:bg-white/60")}>
+    <div className={cn("group/project flex h-7 items-center rounded-lg pr-1", active ? "bg-white" : "hover:bg-white/60")}>
       <AppLink
         href={href}
         className={cn(
-          "flex min-w-0 flex-1 items-center truncate pl-[30px] text-[13px] no-underline",
+          "flex min-w-0 flex-1 items-center truncate pl-[26px] text-[13px] no-underline",
           active ? "font-medium text-[#202020]" : "text-[#4b4b4b] hover:text-[#202020]",
         )}
       >
@@ -320,25 +321,26 @@ function CompanyGroup({
   activeProjectId: string | null;
   onEdit?: () => void;
 }) {
-  const paths = useWorkspacePaths();
   const [open, setOpen] = useState(true);
   const [adding, setAdding] = useState(false);
-  const board = `${paths.issues()}?vista=kanban`;
+  const href = useCalmHref();
+  const vista = useCalmVista();
+  const scoped = (scope: { company?: string; progetto?: string }) => href(vista === "tutti" ? "lista" : vista, { company: scope.company ?? null, progetto: scope.progetto ?? null });
   const active = company ? activeCompanyId === company.id && !activeProjectId : false;
 
   return (
     <div className="flex flex-col">
-      <div className={cn("group flex h-9 items-center gap-1 rounded-[10px] pr-1", active && "bg-white")}>
-        <button type="button" aria-label={open ? "Chiudi" : "Apri"} onClick={() => setOpen((o) => !o)} className="flex size-7 items-center justify-center text-[#666666]">
+      <div className={cn("group flex h-8 items-center gap-0.5 rounded-lg pr-1", active && "bg-white")}>
+        <button type="button" aria-label={open ? "Chiudi" : "Apri"} onClick={() => setOpen((o) => !o)} className="flex size-6 items-center justify-center text-[#666666]">
           <Chevron open={open} />
         </button>
         {company ? (
-          <AppLink href={`${board}&company=${company.id}`} className="flex min-w-0 flex-1 items-center gap-2 text-sm font-medium text-[#202020] no-underline">
+          <AppLink href={scoped({ company: company.id })} className="flex min-w-0 flex-1 items-center gap-2 text-[13px] font-medium text-[#202020] no-underline">
             <span className="size-2.5 shrink-0 rounded-full" style={{ background: company.color ?? CALM.primary }} />
             <span className="truncate">{company.name}</span>
           </AppLink>
         ) : (
-          <span className="flex-1 truncate text-sm text-[#666666]">Senza company</span>
+          <span className="flex-1 truncate text-[13px] text-[#666666]">Senza company</span>
         )}
         {onEdit ? (
           <button type="button" aria-label="Impostazioni company" onClick={onEdit} className="flex size-7 items-center justify-center rounded-md text-[#666666] opacity-0 hover:bg-white group-hover:opacity-100">
@@ -352,11 +354,11 @@ function CompanyGroup({
       {open ? (
         <div className="flex flex-col">
           {projects.map((p) => (
-            <ProjectLink key={p.id} project={p} companies={companies} active={activeProjectId === p.id} href={`${board}&progetto=${p.id}`} />
+            <ProjectLink key={p.id} project={p} companies={companies} active={activeProjectId === p.id} href={scoped({ progetto: p.id })} />
           ))}
           {adding ? <NewProjectInput companyId={company?.id ?? null} onDone={() => setAdding(false)} /> : null}
           {company && projects.length === 0 && !adding ? (
-            <button type="button" onClick={() => setAdding(true)} className="h-8 rounded-lg pl-[30px] text-left text-[13px] text-[#666666] hover:text-[#202020]">
+            <button type="button" onClick={() => setAdding(true)} className="h-7 rounded-lg pl-[26px] text-left text-[13px] text-[#666666] hover:text-[#202020]">
               + Nuovo progetto
             </button>
           ) : null}
@@ -391,7 +393,7 @@ export function CompanyNav() {
 
   return (
     <div className="flex flex-col gap-0.5">
-      <span className="px-3 pb-1.5 text-[13px] text-[#666666]">Company</span>
+      <span className="px-2.5 pb-1 text-xs text-[#666666]">Company</span>
       {companies.map((c) => (
         <CompanyGroup
           key={c.id}
@@ -415,7 +417,7 @@ export function CompanyNav() {
           setEditing(undefined);
           setDialogOpen(true);
         }}
-        className="flex h-9 items-center px-3 text-left text-sm text-[#4b4b4b] hover:text-[#202020]"
+        className="flex h-7 items-center px-2.5 text-left text-[13px] text-[#4b4b4b] hover:text-[#202020]"
       >
         + Nuova company
       </button>

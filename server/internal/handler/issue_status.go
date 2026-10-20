@@ -37,6 +37,7 @@ type IssueStatusResponse struct {
 	Icon        string  `json:"icon"`
 	IsSystem    bool    `json:"is_system"`
 	Position    float64 `json:"position"`
+	BoardHidden bool    `json:"board_hidden"`
 	ArchivedAt  *string `json:"archived_at"`
 	CreatedAt   string  `json:"created_at"`
 	UpdatedAt   string  `json:"updated_at"`
@@ -65,6 +66,7 @@ func issueStatusToResponse(s db.IssueStatus) IssueStatusResponse {
 		Icon:        s.Icon,
 		IsSystem:    s.IsSystem,
 		Position:    s.Position,
+		BoardHidden: s.BoardHidden,
 		ArchivedAt:  timestampToPtr(s.ArchivedAt),
 		CreatedAt:   timestampToString(s.CreatedAt),
 		UpdatedAt:   timestampToString(s.UpdatedAt),
@@ -91,6 +93,8 @@ type UpdateIssueStatusRequest struct {
 	Color       *string  `json:"color"`
 	Icon        *string  `json:"icon"`
 	Position    *float64 `json:"position"`
+	// BoardHidden hides the status from the calm board (Calm UI fork).
+	BoardHidden *bool `json:"board_hidden"`
 }
 
 // ListIssueStatuses returns the workspace's status catalog in display order.
@@ -289,9 +293,9 @@ func createIssueStatusEntryLocked(ctx context.Context, qtx *db.Queries, workspac
 	return entry, "", nil
 }
 
-// UpdateIssueStatus edits a custom status's presentation. Built-in statuses are
-// immutable in v1 — name and color included — so the default workspace looks
-// and behaves identically for everyone who never opens this settings page.
+// UpdateIssueStatus edits a status's presentation: name, description (the
+// instruction agents read), color, order and board visibility. Calm UI fork:
+// built-ins are editable as well; key and category never change.
 func (h *Handler) UpdateIssueStatus(w http.ResponseWriter, r *http.Request) {
 	entry, wsUUID, member, ok := h.loadIssueStatusForAdmin(w, r)
 	if !ok {
@@ -304,10 +308,7 @@ func (h *Handler) UpdateIssueStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if entry.IsSystem {
-		writeError(w, http.StatusForbidden, "built-in statuses cannot be modified")
-		return
-	}
+	// Calm UI fork: built-ins are editable too; only key and category are fixed.
 	if entry.ArchivedAt.Valid {
 		writeError(w, http.StatusConflict, "archived statuses cannot be modified")
 		return
@@ -352,6 +353,11 @@ func (h *Handler) UpdateIssueStatus(w http.ResponseWriter, r *http.Request) {
 		position = pgtype.Float8{Float64: *req.Position, Valid: true}
 	}
 
+	var boardHidden pgtype.Bool
+	if req.BoardHidden != nil {
+		boardHidden = pgtype.Bool{Bool: *req.BoardHidden, Valid: true}
+	}
+
 	updated, err := h.Queries.UpdateIssueStatusEntry(r.Context(), db.UpdateIssueStatusEntryParams{
 		ID:          entry.ID,
 		WorkspaceID: wsUUID,
@@ -360,6 +366,7 @@ func (h *Handler) UpdateIssueStatus(w http.ResponseWriter, r *http.Request) {
 		Color:       color,
 		Icon:        icon,
 		Position:    position,
+		BoardHidden: boardHidden,
 	})
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {

@@ -72,18 +72,18 @@ RETURNING *;
 
 -- name: UpdateIssueStatusEntry :one
 -- key and category are absent on purpose: both are immutable after create.
--- The is_system guard is what enforces "built-in name and color are locked" at
--- the storage layer, so a handler bug cannot rename a built-in.
+-- Calm UI fork: built-ins are editable too (name, description, color, order,
+-- board visibility); their key and category stay fixed.
 UPDATE issue_status SET
     name = COALESCE(sqlc.narg('name'), name),
     description = COALESCE(sqlc.narg('description'), description),
     color = COALESCE(sqlc.narg('color'), color),
     icon = COALESCE(sqlc.narg('icon'), icon),
     position = COALESCE(sqlc.narg('position'), position),
+    board_hidden = COALESCE(sqlc.narg('board_hidden'), board_hidden),
     updated_at = now()
 WHERE id = sqlc.arg('id')::uuid
   AND workspace_id = sqlc.arg('workspace_id')::uuid
-  AND is_system = FALSE
   AND archived_at IS NULL
 RETURNING *;
 

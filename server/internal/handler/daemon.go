@@ -3629,6 +3629,23 @@ func (h *Handler) buildClaimedTaskResponse(r *http.Request, task *db.AgentTaskQu
 			"error", err,
 		)
 	} else {
+		// Calm UI fork: the visible board columns in board order, each with the
+		// user's instruction, so the agent knows where to move the issue.
+		columns := make([]db.IssueStatus, 0, len(entries))
+		for _, entry := range entries {
+			if !entry.BoardHidden {
+				columns = append(columns, entry)
+			}
+		}
+		sort.SliceStable(columns, func(i, j int) bool { return columns[i].Position < columns[j].Position })
+		for _, entry := range columns {
+			resp.BoardColumns = append(resp.BoardColumns, TaskIssueStatusData{
+				Key:         entry.Key,
+				Name:        entry.Name,
+				Category:    issuestatus.WireCategory(entry.Key, entry.Category),
+				Description: entry.Description,
+			})
+		}
 		for _, entry := range entries {
 			if entry.IsSystem {
 				continue

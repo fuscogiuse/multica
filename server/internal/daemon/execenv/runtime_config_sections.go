@@ -276,6 +276,7 @@ var briefStatusCategoryOrder = issuestatus.Categories()
 // CHECK-constrained server-side; sanitizeBriefCodeToken is defense-in-depth,
 // and an entry whose key fails it is dropped rather than rendered mangled.
 func writeIssueStatusCommand(b *strings.Builder, ctx TaskContextForEnv) {
+	writeBoardColumns(b, ctx)
 	if len(ctx.IssueStatuses) == 0 {
 		b.WriteString("- `multica issue status <id> <status>` — flip status (todo / in_progress / in_review / done / blocked / backlog / cancelled).\n")
 		return
@@ -933,4 +934,28 @@ func buildMetaSkillContentSlim(provider string, ctx TaskContextForEnv) string {
 	writeOutput(&b, kind, ctx)
 
 	return b.String()
+}
+
+// writeBoardColumns lists the calm board columns in order with the user's
+// instruction for each (Calm UI fork). The agent reads them to decide which
+// column an issue belongs in when it changes status.
+func writeBoardColumns(b *strings.Builder, ctx TaskContextForEnv) {
+	if len(ctx.BoardColumns) == 0 {
+		return
+	}
+	b.WriteString("- Board columns, in order. When you change an issue's status, pick the column whose instruction matches the issue's state:\n")
+	for _, c := range ctx.BoardColumns {
+		key := sanitizeBriefCodeToken(c.Key)
+		if key == "" {
+			continue
+		}
+		name := sanitizeNameForBriefMarkdown(c.Name)
+		desc := sanitizeNameForBriefMarkdown(c.Description)
+		switch {
+		case desc != "":
+			fmt.Fprintf(b, "  - `%s` %s: %s\n", key, name, desc)
+		default:
+			fmt.Fprintf(b, "  - `%s` %s\n", key, name)
+		}
+	}
 }

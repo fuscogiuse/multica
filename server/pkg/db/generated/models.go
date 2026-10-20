@@ -985,6 +985,7 @@ type IssueStatus struct {
 	CreatedAt   pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
 	Icon        string             `json:"icon"`
+	BoardHidden bool               `json:"board_hidden"`
 }
 
 type IssueSubscriber struct {

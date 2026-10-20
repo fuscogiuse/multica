@@ -8,6 +8,8 @@ import { projectListOptions } from "@multica/core/projects";
 import { agentListOptions } from "@multica/core/workspace";
 import { agentTaskSnapshotOptions } from "@multica/core/agents";
 import { companyListOptions } from "@multica/core/companies";
+import { useIssueStatuses } from "@multica/core/issue-statuses";
+import type { IssueStatusEntry } from "@multica/core/types";
 import type { AgentTask, Company, Issue, IssuePriority, Project } from "@multica/core/types";
 import { useNavigation } from "../navigation";
 import { ActorAvatar } from "../common/actor-avatar";
@@ -112,6 +114,32 @@ export function calmColumn(issue: Issue): CalmColumn | null {
   if (cat === "started") return "doing";
   if (cat === "done") return "done";
   return null;
+}
+
+/**
+ * The calm board: every visible status is a column, in the user's order.
+ * Statuses hidden from the board fold into the first visible column of the
+ * same lifecycle category, or drop off the board when there is none.
+ */
+export function useBoard() {
+  const wsId = useWorkspaceId();
+  const catalog = useIssueStatuses(wsId);
+  return useMemo(() => {
+    const columns = catalog.activeStatuses
+      .filter((s) => !s.board_hidden)
+      .slice()
+      .sort((a, b) => a.position - b.position);
+    const visible = new Set(columns.map((c) => c.key));
+    const columnOf = (issue: Pick<Issue, "status">): IssueStatusEntry | undefined => {
+      if (visible.has(issue.status)) return columns.find((c) => c.key === issue.status);
+      const cat = catalog.categoryOf(issue.status);
+      if (cat === "closed") return undefined;
+      return columns.find((c) => c.category === cat);
+    };
+    const nameOf = (key: string) => catalog.entryOf(key)?.name ?? STATUS_IT[key] ?? key;
+    const colorOf = (key: string) => catalog.entryOf(key)?.color ?? STATUS_DOT[key] ?? "rgba(0,0,0,0.25)";
+    return { columns, all: catalog.activeStatuses, columnOf, nameOf, colorOf, ready: !catalog.isPending };
+  }, [catalog]);
 }
 
 export function isOpen(issue: Issue): boolean {

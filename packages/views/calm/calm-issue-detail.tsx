@@ -33,14 +33,13 @@ import { TranscriptButton } from "../common/task-transcript";
 import { cn } from "@multica/ui/lib/utils";
 import {
   CALM,
+  useBoard,
   formatDueIt,
   minutesSince,
   PRIORITY_IT,
   priorityColor,
   PriorityCircle,
   relativeIt,
-  STATUS_DOT,
-  statusLabel,
 } from "./shared";
 
 const ACTIVE_TASK = new Set<AgentTask["status"]>(["queued", "dispatched", "running", "waiting_local_directory", "deferred"]);
@@ -148,7 +147,7 @@ function Feed({ timeline, loading }: { timeline: TimelineEntry[]; loading: boole
           <div key={e.id} id={`comment-${e.id}`} className="flex gap-2.5 md:gap-3">
             <ActorAvatar actorType={e.actor_type} actorId={e.actor_id} name={e.actor_name} avatarUrl={e.actor_avatar_url} size="md" />
             <div className="flex min-w-0 flex-1 flex-col gap-1">
-              <div className="flex items-center gap-2 text-[13px] md:text-sm">
+              <div className="flex items-center gap-2 text-[13px]">
                 <span className="font-semibold">{who(e)}</span>
                 {e.actor_type === "agent" ? (
                   <span className="inline-flex h-5 items-center rounded-md bg-[#f6f4f1] px-[7px] text-[11px] font-semibold text-[#4b4b4b] md:bg-[#f6f4f1]">
@@ -157,7 +156,7 @@ function Feed({ timeline, loading }: { timeline: TimelineEntry[]; loading: boole
                 ) : null}
                 <span className="ml-auto shrink-0 text-xs text-[#666666]">{relativeIt(e.created_at, now)}</span>
               </div>
-              <ReadonlyContent content={e.content ?? ""} attachments={e.attachments} className="text-sm leading-relaxed text-[#202020] md:text-[15px]" />
+              <ReadonlyContent content={e.content ?? ""} attachments={e.attachments} className="text-sm leading-relaxed text-[#202020]" />
               {(replies.get(e.id) ?? []).map((r) => (
                 <div key={r.id} id={`comment-${r.id}`} className="mt-1 flex gap-2.5 border-t border-black/[0.06] pt-2.5">
                   <ActorAvatar actorType={r.actor_type} actorId={r.actor_id} name={r.actor_name} avatarUrl={r.actor_avatar_url} size="md" />
@@ -221,13 +220,13 @@ function Runs({ issueId, compact, hideActive }: { issueId: string; compact?: boo
     const t = active[0];
     if (!t) return null;
     return (
-      <div className="flex items-center gap-2.5 rounded-xl bg-[#202020] px-3.5 py-3 text-white">
+      <div className="flex items-center gap-2.5 rounded-lg bg-[#202020] px-3 py-2 text-white">
         <span className="size-2 shrink-0 rounded-full bg-[#7ecc49]" />
         <span className="min-w-0 flex-1 truncate text-[13px]">
           {getActorName("agent", t.agent_id)} {t.status === "running" ? "sta lavorando" : "in coda"}
         </span>
         <span className="shrink-0 text-[13px] text-white/70">{minutesSince(t.started_at ?? t.dispatched_at, now)} min</span>
-        <button type="button" onClick={() => setOpenId(t.id)} className="h-8 shrink-0 rounded-lg bg-white/[0.12] px-2.5 text-xs font-semibold">
+        <button type="button" onClick={() => setOpenId(t.id)} className="h-7 shrink-0 rounded-md bg-white/[0.12] px-2.5 text-xs font-semibold">
           Trascrizione
         </button>
         {transcript(t)}
@@ -285,7 +284,7 @@ function Dot({ color }: { color: string }) {
 }
 
 const pillCls =
-  "inline-flex h-8 min-w-0 max-w-full items-center gap-1.5 whitespace-nowrap rounded-full bg-[#f6f4f1] px-3 text-[13px] text-[#202020] hover:bg-[#efe9e2]";
+  "inline-flex h-7 min-w-0 max-w-full items-center gap-1.5 whitespace-nowrap rounded-full bg-[#f6f4f1] px-2.5 text-xs text-[#202020] hover:bg-[#efe9e2]";
 const pillEl = <button type="button" className={pillCls} />;
 
 function PropertyPills({
@@ -298,6 +297,7 @@ function PropertyPills({
   company?: Company;
 }) {
   const { getActorName } = useActorName();
+  const board = useBoard();
   return (
     <div className="flex flex-wrap items-center gap-1.5">
       <StatusPicker
@@ -308,8 +308,8 @@ function PropertyPills({
         triggerRender={pillEl}
         trigger={
           <>
-            <Dot color={STATUS_DOT[issue.status] ?? "rgba(0,0,0,0.25)"} />
-            {statusLabel(issue)}
+            <Dot color={board.colorOf(issue.status)} />
+            {board.nameOf(issue.status)}
           </>
         }
       />
@@ -404,12 +404,12 @@ function Header({ issue, onDone, crumb }: { issue: Issue; onDone: () => void; cr
   const backOrReplace = useBackOrReplace();
   const done = issue.status === "done";
   return (
-    <header className="flex items-center gap-2 px-3.5 py-3 md:gap-3 md:px-8 md:py-4">
+    <header className="flex items-center gap-2 px-3.5 py-2.5 md:gap-3 md:px-6 md:py-3">
       <button
         type="button"
         aria-label="Indietro"
         onClick={() => backOrReplace(paths.issues())}
-        className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl text-[#202020] hover:bg-[#f6f4f1]"
+        className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg text-[#202020] hover:bg-[#f6f4f1]"
       >
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
           <path d="M15 18l-6-6 6-6" />
@@ -426,7 +426,7 @@ function Header({ issue, onDone, crumb }: { issue: Issue; onDone: () => void; cr
         type="button"
         onClick={onDone}
         className={cn(
-          "h-9 shrink-0 rounded-xl border px-3.5 text-[13px] font-medium",
+          "h-8 shrink-0 rounded-lg border px-3 text-[13px] font-medium",
           done ? "border-transparent bg-[#058527] text-white" : "border-black/[0.12] bg-white text-[#202020] hover:bg-[#fcfaf8]",
         )}
       >
@@ -462,7 +462,7 @@ function ContentBlock({ issue }: { issue: Issue }) {
   };
 
   return (
-    <div className="calm-content text-[15px] leading-[1.7] text-[#202020] md:text-base">
+    <div className="calm-content text-sm leading-[1.7] text-[#202020]">
       <ContentEditor
         key={issue.id}
         value={issue.description ?? ""}
@@ -480,11 +480,11 @@ function TitleBlock({ issue, onDone }: { issue: Issue; onDone: () => void }) {
   const update = useUpdateIssue();
   return (
     <div className="flex items-start gap-3">
-      <div className="pt-[9px] md:pt-[11px]">
+      <div className="pt-[7px] md:pt-2">
         <PriorityCircle
           priority={issue.priority}
           done={issue.status === "done"}
-          size={22}
+          size={20}
           onComplete={onDone}
           label={issue.status === "done" ? "Riapri" : "Segna come fatto"}
         />
@@ -493,7 +493,7 @@ function TitleBlock({ issue, onDone }: { issue: Issue; onDone: () => void }) {
         key={`title-${issue.id}`}
         defaultValue={issue.title}
         placeholder="Titolo"
-        className="w-full text-[26px] font-semibold leading-tight tracking-[-0.01em] md:text-[32px]"
+        className="w-full text-[22px] font-semibold leading-tight tracking-[-0.01em] md:text-2xl"
         onBlur={(value) => {
           const t = value.trim();
           if (t && t !== issue.title) update.mutate({ id: issue.id, title: t, title_base: issue.title });
@@ -523,30 +523,30 @@ function CalmDetailBody({ issueId }: { issueId: string }) {
     <div className="flex h-full min-h-0 flex-col bg-white font-sans text-[#202020]">
       <Header issue={issue} onDone={markDone} crumb={crumb} />
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-        <article className="mx-auto flex w-full max-w-[760px] flex-col gap-5 px-[22px] pb-10 pt-4 md:px-10 md:pt-10">
+        <article className="mx-auto flex w-full max-w-[720px] flex-col gap-4 px-[22px] pb-10 pt-3 md:px-10 md:pt-8">
           <TitleBlock issue={issue} onDone={markDone} />
-          <div className="md:pl-[34px]">
+          <div className="md:pl-8">
             <PropertyPills issue={issue} onUpdate={onUpdate} company={company} />
           </div>
-          <div className="md:pl-[34px]">
+          <div className="md:pl-8">
             <Runs issueId={issue.id} compact />
           </div>
-          <div className="md:pl-[34px]">
+          <div className="md:pl-8">
             <ContentBlock issue={issue} />
           </div>
-          <div className="md:pl-[34px]">
+          <div className="md:pl-8">
             <SubIssues issueId={issue.id} />
           </div>
 
-          <div className="mt-4 h-px bg-black/[0.08] md:ml-[34px]" />
+          <div className="mt-4 h-px bg-black/[0.08] md:ml-8" />
 
-          <section className="flex flex-col gap-4 md:pl-[34px]">
+          <section className="flex flex-col gap-4 md:pl-8">
             <h2 className="m-0 text-[13px] font-medium text-[#666666]">Commenti</h2>
             <Feed timeline={timeline} loading={loading} />
             <Composer issueId={issue.id} submitComment={submitComment} />
           </section>
 
-          <details className="group md:pl-[34px]">
+          <details className="group md:pl-8">
             <summary className="cursor-pointer list-none text-[13px] text-[#666666] hover:text-[#202020]">
               Esecuzioni dell’agente
             </summary>

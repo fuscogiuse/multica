@@ -42,6 +42,8 @@ export interface IssueStatusEntry {
   is_system: boolean;
   /** Ordering within the category. */
   position: number;
+  /** Calm UI fork: hidden from the calm board; still a valid status. */
+  board_hidden?: boolean;
   archived_at: string | null;
   created_at: string;
   updated_at: string;
@@ -76,4 +78,6 @@ export interface UpdateIssueStatusRequest {
   /** Omit to preserve; empty string resets to the default. */
   icon?: IssueStatusIcon | "";
   position?: number;
+  /** Calm UI fork: hide or show the status on the calm board. */
+  board_hidden?: boolean;
 }

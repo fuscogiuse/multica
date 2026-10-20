@@ -9,6 +9,7 @@ import { AppLink, useNavigation } from "../navigation";
 import { MulticaIcon } from "@multica/ui/components/common/multica-icon";
 import { cn } from "@multica/ui/lib/utils";
 import { CompanyNav } from "./calm-companies";
+import { useCalmHref } from "./calm-issues";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,11 +40,14 @@ export const BoardIcon = ({ size }: { size?: number }) => (
 export const PeopleIcon = ({ size }: { size?: number }) => (
   <Svg size={size}><circle cx="9" cy="8" r="3.5" /><circle cx="17" cy="9" r="2.5" /><path d="M3 19c0-3 2.7-5 6-5s6 2 6 5M15 14.5c3 0 6 1.5 6 4.5" /></Svg>
 );
+export const GridIcon = ({ size }: { size?: number }) => (
+  <Svg size={size}><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /></Svg>
+);
 export const PlusIcon = ({ size }: { size?: number }) => (
   <Svg size={size}><path d="M12 5v14M5 12h14" /></Svg>
 );
 
-type CalmView = "lista" | "kanban" | "tutti";
+type CalmView = "lista" | "kanban" | "oggi" | "tutti";
 
 function useCalmLocation() {
   const { pathname, searchParams } = useNavigation();
@@ -59,7 +63,7 @@ function NavItem({ href, active, icon, children }: { href: string; active: boole
       href={href}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "flex h-11 items-center gap-3 rounded-[10px] px-3 text-[15px] no-underline transition-colors",
+        "flex h-8 items-center gap-2.5 rounded-lg px-2.5 text-sm no-underline transition-colors",
         active
           ? "bg-white font-semibold text-[#202020] shadow-[0_1px_2px_0_rgba(0,0,0,0.05)]"
           : "font-medium text-[#4b4b4b] hover:bg-white/60 hover:text-[#202020]",
@@ -76,7 +80,7 @@ function SmallLink({ href, active, children }: { href: string; active?: boolean;
     <AppLink
       href={href}
       className={cn(
-        "flex h-8 items-center rounded-lg px-3 text-[13px] no-underline transition-colors",
+        "flex h-7 items-center rounded-lg px-2.5 text-[13px] no-underline transition-colors",
         active ? "bg-white text-[#202020]" : "text-[#666666] hover:bg-white/60 hover:text-[#202020]",
       )}
     >
@@ -96,13 +100,13 @@ function WorkspaceSwitcher() {
         render={
           <button
             type="button"
-            className="flex w-full items-center gap-2.5 rounded-[10px] px-2.5 py-1.5 text-left hover:bg-white/60"
+            className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left hover:bg-white/60"
           />
         }
       >
-        <div className="size-7 shrink-0 rounded-[9px] bg-[#dc4c3e]" aria-hidden />
+        <div className="size-6 shrink-0 rounded-[7px] bg-[#dc4c3e]" aria-hidden />
         <div className="flex min-w-0 flex-1 flex-col">
-          <span className="text-[19px] font-medium leading-tight tracking-[-0.02em]">Calm Tasks</span>
+          <span className="text-[15px] font-semibold leading-tight">Calm Tasks</span>
           {workspace?.name ? <span className="truncate text-xs text-[#666666]">{workspace.name}</span> : null}
         </div>
         <Svg size={14}><path d="M7 10l5 5 5-5" /></Svg>
@@ -130,35 +134,38 @@ function WorkspaceSwitcher() {
 /** Desktop sidebar (≥768px). Hidden on phones, which get the bottom tab bar. */
 export function CalmSidebar({ topSlot }: { topSlot?: ReactNode } = {}) {
   const { pathname, paths, onIssues, vista } = useCalmLocation();
+  const href = useCalmHref();
   const starts = (p: string) => pathname === p || pathname.startsWith(p + "/");
 
   return (
     <nav
       aria-label="Navigazione"
       className={cn(
-        "hidden w-[248px] shrink-0 flex-col gap-1.5 overflow-y-auto px-[18px] font-sans text-[#202020] md:flex",
-        topSlot ? "pb-7" : "py-7",
+        "hidden w-[232px] shrink-0 flex-col gap-0.5 overflow-y-auto px-3 font-sans text-[#202020] md:flex",
+        topSlot ? "pb-5" : "py-5",
       )}
     >
       {topSlot}
-      <div className="pb-6">
+      <div className="pb-3">
         <WorkspaceSwitcher />
       </div>
 
-      <NavItem href={paths.issues()} active={onIssues && vista === "lista"} icon={<SunIcon />}>
-        Oggi
+      <NavItem href={href("lista")} active={onIssues && vista === "lista"} icon={<ListIcon size={16} />}>
+        Lista
       </NavItem>
-      <NavItem href={`${paths.issues()}?vista=kanban`} active={onIssues && vista === "kanban"} icon={<BoardIcon />}>
+      <NavItem href={href("kanban")} active={onIssues && vista === "kanban"} icon={<BoardIcon size={16} />}>
         Kanban
       </NavItem>
-      <NavItem href={`${paths.issues()}?vista=tutti`} active={onIssues && vista === "tutti"} icon={<ListIcon />}>
+      <NavItem href={href("oggi")} active={onIssues && vista === "oggi"} icon={<SunIcon size={16} />}>
+        Oggi
+      </NavItem>
+      <NavItem href={`${paths.issues()}?vista=tutti`} active={onIssues && vista === "tutti"} icon={<GridIcon size={16} />}>
         Tutti i task
       </NavItem>
-
-      <div className="mx-2.5 my-[18px] h-px bg-black/[0.08]" />
+      <div className="mx-2.5 my-3 h-px bg-black/[0.08]" />
       <CompanyNav />
 
-      <div className="mx-2.5 my-[18px] h-px bg-black/[0.08]" />
+      <div className="mx-2.5 my-3 h-px bg-black/[0.08]" />
       <SmallLink href={paths.inbox()} active={starts(paths.inbox())}>Inbox</SmallLink>
       <SmallLink href={paths.projects()} active={starts(paths.projects())}>Progetti</SmallLink>
       <SmallLink href={paths.agents()} active={pathname === paths.agents()}>Agenti</SmallLink>
@@ -166,10 +173,7 @@ export function CalmSidebar({ topSlot }: { topSlot?: ReactNode } = {}) {
       <SmallLink href={paths.settings()} active={starts(paths.settings())}>Impostazioni</SmallLink>
 
       <div className="min-h-6 flex-1" />
-      <div className="rounded-[14px] bg-white p-3.5 text-[13px] leading-relaxed text-[#4b4b4b]">
-        Modalità calma attiva. Vedi solo 3 task alla volta.
-      </div>
-      <div className="flex items-center gap-1.5 px-3 pt-3 text-[11px] text-[#666666]">
+      <div className="flex items-center gap-1.5 px-2.5 pt-2 text-[11px] text-[#666666]">
         <MulticaIcon className="size-3" />
         basato su Multica
       </div>
@@ -190,9 +194,10 @@ export function CalmMobileBar() {
   if (hidden) return null;
 
   const tabs = [
-    { href: paths.issues(), label: "Lista", icon: <ListIcon size={22} />, active: onIssues && vista !== "kanban" },
-    { href: `${paths.issues()}?vista=kanban`, label: "Kanban", icon: <BoardIcon size={22} />, active: onIssues && vista === "kanban" },
-    { href: paths.agents(), label: "Claude", icon: <PeopleIcon size={22} />, active: pathname.startsWith(paths.agents()) },
+    { href: paths.issues(), label: "Lista", icon: <ListIcon size={20} />, active: onIssues && vista === "lista" },
+    { href: `${paths.issues()}?vista=kanban`, label: "Kanban", icon: <BoardIcon size={20} />, active: onIssues && vista === "kanban" },
+    { href: `${paths.issues()}?vista=oggi`, label: "Oggi", icon: <SunIcon size={20} />, active: onIssues && vista === "oggi" },
+    { href: paths.agents(), label: "Claude", icon: <PeopleIcon size={20} />, active: pathname.startsWith(paths.agents()) },
   ];
 
   return (

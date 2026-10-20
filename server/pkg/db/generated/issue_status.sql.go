@@ -19,7 +19,7 @@ WHERE id = $1::uuid
   AND workspace_id = $2::uuid
   AND is_system = FALSE
   AND archived_at IS NULL
-RETURNING id, workspace_id, key, name, description, category, color, is_system, position, archived_at, created_at, updated_at, icon
+RETURNING id, workspace_id, key, name, description, category, color, is_system, position, archived_at, created_at, updated_at, icon, board_hidden
 `
 
 type ArchiveIssueStatusEntryParams struct {
@@ -50,6 +50,7 @@ func (q *Queries) ArchiveIssueStatusEntry(ctx context.Context, arg ArchiveIssueS
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Icon,
+		&i.BoardHidden,
 	)
 	return i, err
 }
@@ -91,7 +92,7 @@ VALUES (
         0
     )
 )
-RETURNING id, workspace_id, key, name, description, category, color, is_system, position, archived_at, created_at, updated_at, icon
+RETURNING id, workspace_id, key, name, description, category, color, is_system, position, archived_at, created_at, updated_at, icon, board_hidden
 `
 
 type CreateIssueStatusEntryParams struct {
@@ -131,6 +132,7 @@ func (q *Queries) CreateIssueStatusEntry(ctx context.Context, arg CreateIssueSta
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Icon,
+		&i.BoardHidden,
 	)
 	return i, err
 }
@@ -146,7 +148,7 @@ func (q *Queries) DeleteIssueStatusEntriesForWorkspace(ctx context.Context, work
 }
 
 const getIssueStatusEntryByID = `-- name: GetIssueStatusEntryByID :one
-SELECT id, workspace_id, key, name, description, category, color, is_system, position, archived_at, created_at, updated_at, icon FROM issue_status
+SELECT id, workspace_id, key, name, description, category, color, is_system, position, archived_at, created_at, updated_at, icon, board_hidden FROM issue_status
 WHERE id = $1::uuid
   AND workspace_id = $2::uuid
 `
@@ -173,12 +175,13 @@ func (q *Queries) GetIssueStatusEntryByID(ctx context.Context, arg GetIssueStatu
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Icon,
+		&i.BoardHidden,
 	)
 	return i, err
 }
 
 const getIssueStatusEntryByKey = `-- name: GetIssueStatusEntryByKey :one
-SELECT id, workspace_id, key, name, description, category, color, is_system, position, archived_at, created_at, updated_at, icon FROM issue_status
+SELECT id, workspace_id, key, name, description, category, color, is_system, position, archived_at, created_at, updated_at, icon, board_hidden FROM issue_status
 WHERE workspace_id = $1::uuid
   AND key = $2::text
 `
@@ -205,12 +208,13 @@ func (q *Queries) GetIssueStatusEntryByKey(ctx context.Context, arg GetIssueStat
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Icon,
+		&i.BoardHidden,
 	)
 	return i, err
 }
 
 const listActiveCustomIssueStatusEntries = `-- name: ListActiveCustomIssueStatusEntries :many
-SELECT id, workspace_id, key, name, description, category, color, is_system, position, archived_at, created_at, updated_at, icon FROM issue_status
+SELECT id, workspace_id, key, name, description, category, color, is_system, position, archived_at, created_at, updated_at, icon, board_hidden FROM issue_status
 WHERE workspace_id = $1::uuid
   AND category = $2::text
   AND is_system = FALSE
@@ -249,6 +253,7 @@ func (q *Queries) ListActiveCustomIssueStatusEntries(ctx context.Context, arg Li
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.Icon,
+			&i.BoardHidden,
 		); err != nil {
 			return nil, err
 		}
@@ -261,7 +266,7 @@ func (q *Queries) ListActiveCustomIssueStatusEntries(ctx context.Context, arg Li
 }
 
 const listIssueStatusEntries = `-- name: ListIssueStatusEntries :many
-SELECT id, workspace_id, key, name, description, category, color, is_system, position, archived_at, created_at, updated_at, icon FROM issue_status
+SELECT id, workspace_id, key, name, description, category, color, is_system, position, archived_at, created_at, updated_at, icon, board_hidden FROM issue_status
 WHERE workspace_id = $1::uuid
   AND ($2::bool OR archived_at IS NULL)
 ORDER BY
@@ -311,6 +316,7 @@ func (q *Queries) ListIssueStatusEntries(ctx context.Context, arg ListIssueStatu
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.Icon,
+			&i.BoardHidden,
 		); err != nil {
 			return nil, err
 		}
@@ -460,12 +466,12 @@ UPDATE issue_status SET
     color = COALESCE($3, color),
     icon = COALESCE($4, icon),
     position = COALESCE($5, position),
+    board_hidden = COALESCE($6, board_hidden),
     updated_at = now()
-WHERE id = $6::uuid
-  AND workspace_id = $7::uuid
-  AND is_system = FALSE
+WHERE id = $7::uuid
+  AND workspace_id = $8::uuid
   AND archived_at IS NULL
-RETURNING id, workspace_id, key, name, description, category, color, is_system, position, archived_at, created_at, updated_at, icon
+RETURNING id, workspace_id, key, name, description, category, color, is_system, position, archived_at, created_at, updated_at, icon, board_hidden
 `
 
 type UpdateIssueStatusEntryParams struct {
@@ -474,13 +480,14 @@ type UpdateIssueStatusEntryParams struct {
 	Color       pgtype.Text   `json:"color"`
 	Icon        pgtype.Text   `json:"icon"`
 	Position    pgtype.Float8 `json:"position"`
+	BoardHidden pgtype.Bool   `json:"board_hidden"`
 	ID          pgtype.UUID   `json:"id"`
 	WorkspaceID pgtype.UUID   `json:"workspace_id"`
 }
 
 // key and category are absent on purpose: both are immutable after create.
-// The is_system guard is what enforces "built-in name and color are locked" at
-// the storage layer, so a handler bug cannot rename a built-in.
+// Calm UI fork: built-ins are editable too (name, description, color, order,
+// board visibility); their key and category stay fixed.
 func (q *Queries) UpdateIssueStatusEntry(ctx context.Context, arg UpdateIssueStatusEntryParams) (IssueStatus, error) {
 	row := q.db.QueryRow(ctx, updateIssueStatusEntry,
 		arg.Name,
@@ -488,6 +495,7 @@ func (q *Queries) UpdateIssueStatusEntry(ctx context.Context, arg UpdateIssueSta
 		arg.Color,
 		arg.Icon,
 		arg.Position,
+		arg.BoardHidden,
 		arg.ID,
 		arg.WorkspaceID,
 	)
@@ -506,6 +514,7 @@ func (q *Queries) UpdateIssueStatusEntry(ctx context.Context, arg UpdateIssueSta
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Icon,
+		&i.BoardHidden,
 	)
 	return i, err
 }
