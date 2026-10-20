@@ -11,42 +11,38 @@ struct TodayView: View {
     var body: some View {
         let resolver = store.resolver(for: nil)
         let due = Today.dueOrOverdue(store.issues, resolver: resolver, today: Today.dayString())
-        VStack(alignment: .leading, spacing: 0) {
-            HStack { MenuButton(); Spacer() }
-                .padding(.horizontal, 8)
-                .frame(height: 44)
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 10) {
-                    Image(systemName: "star.fill").font(.system(size: 24)).foregroundStyle(Color(hex: 0xF5B301))
-                    Text("Oggi").font(.system(size: 32, weight: .heavy)).tracking(-0.5).foregroundStyle(Calm.ink)
+        VStack(spacing: 0) {
+            ScreenHeader(subtitle: "\(TodayHeader.date) · \(due.count) task") {
+                HStack(spacing: DS.Space.s) {
+                    Image(systemName: "star.fill").font(.system(size: 22)).foregroundStyle(Color(hex: 0xF5B301))
+                    LargeTitle(text: "Oggi")
                 }
-                Text("\(TodayHeader.date) · \(due.count) task").font(.system(size: 15)).foregroundStyle(Calm.muted)
             }
-            .padding(.horizontal, 20)
-            .padding(.bottom, 8)
-        List {
-            if due.isEmpty && store.hasLoaded {
-                ContentUnavailableView("Niente per oggi", systemImage: "sun.max", description: Text("Nessun task in scadenza."))
-                    .listRowBackground(Color.clear)
-            }
-            ForEach(due) { issue in
-                NavigationLink(value: issue) {
-                    TaskRow(issue: issue, resolver: store.resolver(for: store.project(issue.projectId)), density: density,
-                            projectName: store.project(issue.projectId)?.title) {
-                        let r = store.resolver(for: store.project(issue.projectId))
-                        Task { await store.move(issue, to: r.doneKey) }
+            List {
+                if due.isEmpty && store.hasLoaded {
+                    ContentUnavailableView("Niente per oggi", systemImage: "sun.max", description: Text("Nessun task in scadenza."))
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
+                }
+                ForEach(due) { issue in
+                    let r = store.resolver(for: store.project(issue.projectId))
+                    RowLink(value: issue) {
+                        TaskRow(issue: issue, resolver: r, density: density, projectName: store.project(issue.projectId)?.title)
+                    }
+                    .dsListRow()
+                    .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                        Button { Task { await store.move(issue, to: r.doneKey) } } label: { Label("Fatto", systemImage: "checkmark") }
+                            .tint(Calm.green)
                     }
                 }
-                .listRowSeparator(.hidden)
             }
+            .listStyle(.plain)
+            .environment(\.defaultMinListRowHeight, density == .compact ? DS.Size.rowCompact : DS.Size.rowMedium)
+            .scrollContentBackground(.hidden)
+            .contentMargins(.bottom, 90, for: .scrollContent)
+            .refreshable { await store.refresh() }
         }
-        .listStyle(.plain)
-        .scrollContentBackground(.hidden)
-        .contentMargins(.bottom, 90, for: .scrollContent)
-        .background(Calm.warm)
-        .refreshable { await store.refresh() }
-        }
-        .background(Calm.warm.ignoresSafeArea())
+        .background(Color.white.ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
         .navigationDestination(for: Issue.self) { issue in TaskDetailView(issueId: issue.id) }
     }

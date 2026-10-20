@@ -20,19 +20,19 @@ struct KanbanView: View {
         let folded = Collapsed.set(collapsedRaw)
         GeometryReader { geometry in
             ScrollView(.horizontal, showsIndicators: false) {
-                LazyHStack(alignment: .top, spacing: 12) {
+                LazyHStack(alignment: .top, spacing: DS.Space.m) {
                     ForEach(resolver.columns) { column in
                         if folded.contains(column.key) {
                             foldedColumn(column, count: grouped[column.key]?.count ?? 0)
                                 .frame(width: 54)
                         } else {
                             columnView(column, items: grouped[column.key] ?? [], height: geometry.size.height)
-                                .frame(width: max(geometry.size.width - 56, 240))
+                                .frame(width: max(geometry.size.width - DS.gutter * 2 - 36, 240))
                         }
                     }
                 }
                 .scrollTargetLayout()
-                .padding(.horizontal, 16)
+                .padding(.horizontal, DS.gutter)
             }
             .scrollTargetBehavior(.viewAligned)
         }
@@ -42,21 +42,13 @@ struct KanbanView: View {
     private func columnView(_ column: StatusEntry, items: [Issue], height: CGFloat) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Button { toggle(column.key) } label: {
-                HStack(spacing: 8) {
-                    Image(systemName: "chevron.down").font(.system(size: 11, weight: .semibold)).foregroundStyle(Calm.muted)
-                    Text(column.name).font(.system(size: 16, weight: .bold)).foregroundStyle(Calm.ink)
-                    Spacer()
-                    Text("\(items.count)").font(.system(size: 13)).foregroundStyle(Calm.muted)
-                }
-                .frame(minHeight: 36)
-                .contentShape(Rectangle())
+                SectionTitle(name: column.name, count: items.count)
             }
             .buttonStyle(.plain)
-            .padding(.horizontal, 4)
             .accessibilityLabel("Comprimi \(column.name)")
 
             ScrollView {
-                LazyVStack(spacing: 12) {
+                LazyVStack(spacing: DS.Space.s) {
                     ForEach(items) { issue in
                         NavigationLink(value: issue) { card(issue) }
                             .buttonStyle(.plain)
@@ -127,7 +119,7 @@ struct KanbanView: View {
     private func card(_ issue: Issue) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             Text(issue.title)
-                .font(.system(size: 16, weight: .semibold))
+                .font(DS.Text.headline)
                 .foregroundStyle(Calm.ink)
                 .multilineTextAlignment(.leading)
                 .lineSpacing(2)
@@ -150,8 +142,8 @@ struct KanbanView: View {
                 Text(issue.identifier).font(.system(size: 12)).foregroundStyle(Calm.muted)
             }
         }
-        .padding(16)
+        .padding(DS.Space.l)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: 18).fill(Calm.card))
+        .background(RoundedRectangle(cornerRadius: DS.Radius.l).fill(Calm.card))
     }
 }

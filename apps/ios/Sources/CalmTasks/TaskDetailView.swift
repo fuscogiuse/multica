@@ -49,26 +49,14 @@ struct TaskDetailView: View {
         let project = store.project(issue.projectId)
         let resolver = store.resolver(for: project)
         return ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                HStack(alignment: .top, spacing: 14) {
-                    Button { Task { await store.move(issue, to: resolver.doneKey) } } label: {
-                        RoundedRectangle(cornerRadius: 8)
-                            .strokeBorder(Calm.checkbox, lineWidth: 2)
-                            .frame(width: 26, height: 26)
-                            .padding(.top, 4)
-                            .frame(width: 36, height: 40, alignment: .top)
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Segna come fatto")
-                    VStack(alignment: .leading, spacing: 4) {
-                        TextField("Titolo", text: $title, axis: .vertical)
-                            .font(.system(size: 24, weight: .bold))
-                            .focused($focus, equals: .title)
-                            .onSubmit { saveTitle(issue) }
-                            .submitLabel(.done)
-                        Text(issue.identifier).font(.system(size: 13)).foregroundStyle(Calm.muted)
-                    }
+            VStack(alignment: .leading, spacing: DS.Space.xxl) {
+                VStack(alignment: .leading, spacing: DS.Space.xs) {
+                    TextField("Titolo", text: $title, axis: .vertical)
+                        .font(DS.Text.title)
+                        .focused($focus, equals: .title)
+                        .onSubmit { saveTitle(issue) }
+                        .submitLabel(.done)
+                    Text(issue.identifier).font(DS.Text.footnote).foregroundStyle(Calm.muted)
                 }
 
                 VStack(spacing: 0) {
@@ -105,7 +93,7 @@ struct TaskDetailView: View {
 
                 VStack(alignment: .leading, spacing: 6) {
                     HStack {
-                        Text("Note").font(.footnote.weight(.medium)).foregroundStyle(Calm.soft)
+                        Text("Note").font(DS.Text.section).foregroundStyle(Calm.ink)
                         Spacer()
                         if editingNotes {
                             Button("Fine") { commitEdits(issue); editingNotes = false; focus = nil }
@@ -143,7 +131,7 @@ struct TaskDetailView: View {
                 }
 
                 VStack(alignment: .leading, spacing: 10) {
-                    Text("Commenti").font(.footnote.weight(.medium)).foregroundStyle(Calm.soft)
+                    Text("Commenti").font(DS.Text.section).foregroundStyle(Calm.ink)
                     ForEach(comments) { comment in
                         VStack(alignment: .leading, spacing: 4) {
                             Text(comment.authorType == "agent" ? "Agente" : "Tu")
@@ -192,8 +180,9 @@ struct TaskDetailView: View {
                     }
                 }
             }
-            .padding(16)
-            .padding(.bottom, 40)
+            .padding(.horizontal, DS.gutter)
+            .padding(.top, DS.Space.s)
+            .padding(.bottom, DS.Space.xxxl)
         }
         .scrollDismissesKeyboard(.interactively)
         .toolbar {
@@ -239,15 +228,15 @@ struct TaskDetailView: View {
 
     private func propertyRow(icon: String, label: String, value: String, valueColor: Color = Calm.ink, chevron: Bool = false) -> some View {
         HStack(spacing: 14) {
-            Image(systemName: icon).font(.system(size: 16)).foregroundStyle(Calm.muted).frame(width: 22)
-            Text(label).font(.system(size: 16)).foregroundStyle(Calm.muted)
+            Image(systemName: icon).font(DS.Text.callout).foregroundStyle(Calm.muted).frame(width: 22)
+            Text(label).font(DS.Text.body).foregroundStyle(Calm.muted)
             Spacer()
-            Text(value).font(.system(size: 16, weight: valueColor == Calm.primary ? .semibold : .regular)).foregroundStyle(valueColor).lineLimit(1)
+            Text(value).font(valueColor == Calm.primary ? DS.Text.headline : DS.Text.body).foregroundStyle(valueColor).lineLimit(1)
             if chevron {
                 Image(systemName: "chevron.up.chevron.down").font(.system(size: 11)).foregroundStyle(Calm.checkbox)
             }
         }
-        .frame(minHeight: 50)
+        .frame(minHeight: DS.Size.property)
         .overlay(alignment: .bottom) { Rectangle().fill(Calm.line).frame(height: 1) }
         .contentShape(Rectangle())
     }

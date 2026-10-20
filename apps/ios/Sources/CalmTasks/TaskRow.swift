@@ -1,71 +1,48 @@
 import SwiftUI
 import CalmCore
 
-/// One task in a list, Aria style: rounded square checkbox, title, and a quiet line under it.
+/// One task in a list: the title and one quiet line under it.
+/// Heights come from DS.Size so every list looks the same.
 struct TaskRow: View {
     let issue: Issue
     let resolver: BoardResolver
     var density: Density = .medium
-    /// The client name, shown under the title in the medium layout. Pass nil when the screen is already one client.
+    /// The client name, shown under the title. Pass nil when the screen is already one client.
     var projectName: String?
     var showStatus = false
     var onComplete: (() -> Void)?
 
     private var isDone: Bool { resolver.category(for: issue.status) == "done" }
-
-    private var boxColor: Color {
-        switch issue.priorityValue {
-        case .urgent, .high: return Calm.late
-        default: return Calm.checkbox
-        }
-    }
+    private var compact: Bool { density == .compact }
 
     var body: some View {
-        HStack(spacing: density == .compact ? 10 : 14) {
-            Button { onComplete?() } label: {
-                checkbox
-                    .frame(width: density == .compact ? 32 : 36, height: density == .compact ? 34 : 44)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Segna come fatto")
-            .disabled(onComplete == nil)
-
-            if density == .compact {
+        // No checkbox: a task is completed with a swipe to the right.
+        HStack(spacing: DS.Space.m) {
+            if compact {
                 Text(issue.title)
-                    .font(.system(size: 15))
+                    .font(DS.Text.callout)
                     .foregroundStyle(isDone ? Calm.muted : Calm.ink)
                     .strikethrough(isDone)
                     .lineLimit(1)
-                Spacer(minLength: 4)
-                if let day = issue.dueDay { dueText(day).font(.system(size: 12)) }
+                Spacer(minLength: DS.Space.s)
+                if let day = issue.dueDay { dueText(day).font(DS.Text.footnote) }
             } else {
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: DS.Space.xxs) {
                     Text(issue.title)
-                        .font(.system(size: 17))
+                        .font(DS.Text.body)
                         .foregroundStyle(isDone ? Calm.muted : Calm.ink)
                         .strikethrough(isDone)
                         .lineLimit(1)
-                    if hasMeta {
-                        HStack(spacing: 0) {
-                            Text(metaPrefix).foregroundStyle(Calm.muted)
-                            if let day = issue.dueDay {
-                                if !metaPrefix.isEmpty { Text(" · ").foregroundStyle(Calm.muted) }
-                                dueText(day)
-                            }
-                            if issue.assigneeType == "agent" {
-                                Text(" · ").foregroundStyle(Calm.muted)
-                                Image(systemName: "sparkles").foregroundStyle(Calm.primary)
-                            }
-                        }
-                        .font(.system(size: 13))
-                        .lineLimit(1)
-                    }
+                    if hasMeta { meta.font(DS.Text.footnote).lineLimit(1) }
                 }
                 Spacer(minLength: 0)
             }
+            if issue.priorityValue.rank <= 1 && !isDone {
+                Image(systemName: "flag.fill").font(DS.Text.footnote).foregroundStyle(Calm.late)
+                    .accessibilityLabel("Priorità alta")
+            }
         }
-        .frame(minHeight: density == .compact ? 38 : 56)
+        .frame(minHeight: compact ? DS.Size.rowCompact : (hasMeta ? DS.Size.rowMedium : DS.Size.iconButton))
         .contentShape(Rectangle())
     }
 
@@ -75,16 +52,17 @@ struct TaskRow: View {
 
     private var hasMeta: Bool { !metaPrefix.isEmpty || issue.dueDay != nil || issue.assigneeType == "agent" }
 
-    @ViewBuilder
-    private var checkbox: some View {
-        let size: CGFloat = density == .compact ? 19 : 22
-        if isDone {
-            RoundedRectangle(cornerRadius: 7).fill(Calm.primary)
-                .frame(width: size, height: size)
-                .overlay(Image(systemName: "checkmark").font(.system(size: size * 0.55, weight: .bold)).foregroundStyle(.white))
-        } else {
-            RoundedRectangle(cornerRadius: 7).strokeBorder(boxColor, lineWidth: 1.8)
-                .frame(width: size, height: size)
+    private var meta: some View {
+        HStack(spacing: 0) {
+            Text(metaPrefix).foregroundStyle(Calm.muted)
+            if let day = issue.dueDay {
+                if !metaPrefix.isEmpty { Text(" · ").foregroundStyle(Calm.muted) }
+                dueText(day)
+            }
+            if issue.assigneeType == "agent" {
+                Text(" · ").foregroundStyle(Calm.muted)
+                Image(systemName: "sparkles").foregroundStyle(Calm.primary)
+            }
         }
     }
 
@@ -96,7 +74,7 @@ struct TaskRow: View {
     }
 }
 
-/// The "move to…" menu used by long press and swipe.
+/// The "move to…" menu used by long press.
 struct MoveMenu: View {
     @EnvironmentObject var store: BoardStore
     let issue: Issue

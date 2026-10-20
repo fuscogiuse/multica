@@ -20,6 +20,24 @@ struct SearchView: View {
 
     var body: some View {
         NavigationStack(path: $path) {
+            VStack(spacing: 0) {
+            ScreenHeader(subtitle: nil) { LargeTitle(text: "Cerca") }
+            HStack(spacing: DS.Space.s) {
+                Image(systemName: "magnifyingglass").foregroundStyle(Calm.muted)
+                TextField("Titolo, codice o cliente", text: $query)
+                    .font(DS.Text.body)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                if !query.isEmpty {
+                    Button { query = "" } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(Calm.checkbox) }
+                        .buttonStyle(.plain).accessibilityLabel("Cancella")
+                }
+            }
+            .padding(.horizontal, DS.Space.l)
+            .frame(height: DS.Size.field)
+            .background(RoundedRectangle(cornerRadius: DS.Radius.m).fill(Calm.field))
+            .padding(.horizontal, DS.gutter)
+            .padding(.bottom, DS.Space.s)
             List {
                 if query.isEmpty {
                     ContentUnavailableView("Cerca un task", systemImage: "magnifyingglass",
@@ -29,22 +47,20 @@ struct SearchView: View {
                     ContentUnavailableView.search(text: query).listRowBackground(Color.clear)
                 }
                 ForEach(results) { issue in
-                    NavigationLink(value: issue) {
+                    RowLink(value: issue) {
                         TaskRow(issue: issue, resolver: store.resolver(for: store.project(issue.projectId)),
                                 projectName: store.project(issue.projectId)?.title, showStatus: true)
                     }
+                    .dsListRow()
                 }
             }
             .listStyle(.plain)
-            .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always), prompt: "Cerca")
+            .environment(\.defaultMinListRowHeight, DS.Size.rowMedium)
             .scrollContentBackground(.hidden)
-            .background(Calm.warm)
-            .navigationTitle("Cerca")
-            .navigationBarTitleDisplayMode(.inline)
-            .navigationDestination(for: Issue.self) { issue in TaskDetailView(issueId: issue.id) }
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) { MenuButton() }
             }
+            .background(Color.white.ignoresSafeArea())
+            .toolbar(.hidden, for: .navigationBar)
+            .navigationDestination(for: Issue.self) { issue in TaskDetailView(issueId: issue.id) }
         }
     }
 }
@@ -55,8 +71,13 @@ struct MenuButton: View {
 
     var body: some View {
         Button { sidebar.open() } label: {
-            Image(systemName: "line.3.horizontal").frame(width: 44, height: 44)
+            Image(systemName: "line.3.horizontal")
+                .font(.system(size: 18))
+                .foregroundStyle(Calm.ink)
+                .frame(width: DS.Size.iconButton, height: DS.Size.iconButton)
+                .contentShape(Rectangle())
         }
+        .buttonStyle(.plain)
         .accessibilityLabel("Apri la barra laterale")
     }
 }

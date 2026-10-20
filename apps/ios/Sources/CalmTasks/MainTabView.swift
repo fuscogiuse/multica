@@ -140,6 +140,12 @@ struct MainTabView: View {
             tab = 1
             launchProject = ""
         }
+        if let id = UserDefaults.standard.string(forKey: "calm.openIssue"), !id.isEmpty,
+           let issue = store.issues.first(where: { $0.id == id }) {
+            tab = 1
+            taskPath.append(issue)
+            UserDefaults.standard.removeObject(forKey: "calm.openIssue")
+        }
         if !launchSidebar.isEmpty, store.hasLoaded {
             sidebar.open()
             launchSidebar = ""

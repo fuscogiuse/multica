@@ -24,105 +24,67 @@ struct ListView: View {
         let grouped = resolver.group(issues)
         let folded = Collapsed.set(collapsedRaw)
         let expandedEmpty = Collapsed.set(expandedRaw)
+        // Section titles are ordinary rows, not List headers: the system adds its own padding to headers.
         List {
             ForEach(resolver.columns) { column in
                 let items = grouped[column.key] ?? []
                 let isFolded = folded.contains(column.key) || (items.isEmpty && !expandedEmpty.contains(column.key))
-                Section {
-                    if !isFolded {
-                        if items.isEmpty {
-                            Button { newTaskColumn = column } label: {
-                                HStack(spacing: 8) {
-                                    Image(systemName: "plus").font(.system(size: 13, weight: .semibold))
-                                    Text("Nuovo task").font(.system(size: 14))
-                                }
-                                .foregroundStyle(Calm.primary)
-                                .frame(maxWidth: .infinity, minHeight: 40, alignment: .leading)
-                                .padding(.leading, 6)
-                                .contentShape(Rectangle())
+                sectionRow(column, count: items.count, isFolded: isFolded, isEmpty: items.isEmpty)
+                if !isFolded {
+                    if items.isEmpty {
+                        Button { newTaskColumn = column } label: {
+                            HStack(spacing: DS.Space.s) {
+                                Image(systemName: "plus").font(DS.Text.footnote.weight(.semibold))
+                                Text("Nuovo task").font(DS.Text.callout)
                             }
-                            .buttonStyle(.plain)
-                            .listRowBackground(Color.white)
+                            .foregroundStyle(Calm.primary)
+                            .frame(maxWidth: .infinity, minHeight: DS.Size.rowCompact, alignment: .leading)
+                            .contentShape(Rectangle())
                         }
-                        ForEach(items) { issue in
-                            NavigationLink(value: issue) {
-                                TaskRow(issue: issue, resolver: resolver, density: density,
-                                        projectName: showProject ? store.project(issue.projectId)?.title : nil) {
-                                    Task { await store.move(issue, to: resolver.doneKey) }
-                                }
-                            }
-                            .listRowInsets(EdgeInsets(top: 0, leading: 12, bottom: 0, trailing: 12))
-                            .listRowBackground(Color.white)
-                            .listRowSeparator(.hidden)
-                            // Long press and drag a task onto another one to join them.
-                            .draggable(issue.id)
-                            .dropDestination(for: String.self) { ids, _ in
-                                guard let id = ids.first, id != issue.id,
-                                      let source = store.issues.first(where: { $0.id == id }) else { return false }
-                                mergePair = MergePair(source: source, target: issue)
-                                return true
-                            }
-                            // Swipe right: done. Swipe left: date, archive, delete, like Mail.
-                            .swipeActions(edge: .leading, allowsFullSwipe: true) {
-                                Button { Task { await store.move(issue, to: resolver.doneKey) } } label: {
-                                    Label("Fatto", systemImage: "checkmark")
-                                }
-                                .tint(Calm.green)
-                            }
-                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                Button { deleteIssue = issue } label: { Label("Elimina", systemImage: "trash") }
-                                    .tint(Calm.red)
-                                Button { Task { await store.move(issue, to: "cancelled") } } label: {
-                                    Label("Archivia", systemImage: "archivebox")
-                                }
-                                .tint(Calm.orange)
-                                Button { dateIssue = issue } label: { Label("Data", systemImage: "calendar") }
-                                    .tint(Calm.blue)
-                            }
-                            .contextMenu { MoveMenu(issue: issue, resolver: resolver) }
-                        }
+                        .buttonStyle(.plain)
+                        .dsListRow()
                     }
-                } header: {
-                    Button {
-                        withAnimation(.easeInOut(duration: 0.2)) {
-                            if isFolded {
-                                // Open it: clear any fold and, for an empty section, remember it was opened.
-                                var keys = Collapsed.set(collapsedRaw); keys.remove(column.key)
-                                collapsedRaw = keys.sorted().joined(separator: ",")
-                                if items.isEmpty { expandedRaw = Collapsed.toggled(column.key, in: expandedRaw) }
-                            } else {
-                                collapsedRaw = Collapsed.toggled(column.key, in: collapsedRaw)
-                                var open = Collapsed.set(expandedRaw); open.remove(column.key)
-                                expandedRaw = open.sorted().joined(separator: ",")
+                    ForEach(items) { issue in
+                        RowLink(value: issue) {
+                            TaskRow(issue: issue, resolver: resolver, density: density,
+                                    projectName: showProject ? store.project(issue.projectId)?.title : nil)
+                        }
+                        .dsListRow()
+                        // Long press and drag a task onto another one to join them.
+                        .draggable(issue.id)
+                        .dropDestination(for: String.self) { ids, _ in
+                            guard let id = ids.first, id != issue.id,
+                                  let source = store.issues.first(where: { $0.id == id }) else { return false }
+                            mergePair = MergePair(source: source, target: issue)
+                            return true
+                        }
+                        // Swipe right: done. Swipe left: date, archive, delete, like Mail.
+                        .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                            Button { Task { await store.move(issue, to: resolver.doneKey) } } label: {
+                                Label("Fatto", systemImage: "checkmark")
                             }
+                            .tint(Calm.green)
                         }
-                    } label: {
-                        HStack(spacing: 8) {
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 11, weight: .semibold))
-                                .foregroundStyle(Calm.muted)
-                                .rotationEffect(.degrees(isFolded ? 0 : 90))
-                            Text(column.name).font(.system(size: 15, weight: .bold)).foregroundStyle(Calm.primary)
-                            Text("\(items.count)").font(.system(size: 13)).foregroundStyle(Calm.muted)
-                            Spacer()
+                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                            Button { deleteIssue = issue } label: { Label("Elimina", systemImage: "trash") }
+                                .tint(Calm.red)
+                            Button { Task { await store.move(issue, to: "cancelled") } } label: {
+                                Label("Archivia", systemImage: "archivebox")
+                            }
+                            .tint(Calm.orange)
+                            Button { dateIssue = issue } label: { Label("Data", systemImage: "calendar") }
+                                .tint(Calm.blue)
                         }
-                        .frame(minHeight: 36)
-                        .contentShape(Rectangle())
+                        .contextMenu { MoveMenu(issue: issue, resolver: resolver) }
                     }
-                    .buttonStyle(.plain)
-                    .padding(.horizontal, 16)
-                    .frame(maxWidth: .infinity, minHeight: density.sectionHeaderHeight, alignment: .leading)
-                    .background(Color.white)
-                    .listRowInsets(EdgeInsets())
-                    .accessibilityLabel("\(column.name), \(items.count) task, \(isFolded ? "chiusa" : "aperta")")
-                    .textCase(nil)
                 }
             }
         }
         .listStyle(.plain)
         .listSectionSeparator(.hidden)
         .background(Color.white)
-        .environment(\.defaultMinListRowHeight, density == .compact ? 38 : 56)
+        // Rows set their own heights from DS.Size.
+        .environment(\.defaultMinListRowHeight, 1)
         .scrollContentBackground(.hidden)
         .contentMargins(.bottom, 90, for: .scrollContent)
         .refreshable { await store.refresh() }
@@ -141,6 +103,28 @@ struct ListView: View {
         } message: {
             Text(deleteIssue?.title ?? "")
         }
+    }
+
+    private func sectionRow(_ column: StatusEntry, count: Int, isFolded: Bool, isEmpty: Bool) -> some View {
+        Button {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                if isFolded {
+                    // Open it: clear any fold and, for an empty section, remember it was opened.
+                    var keys = Collapsed.set(collapsedRaw); keys.remove(column.key)
+                    collapsedRaw = keys.sorted().joined(separator: ",")
+                    if isEmpty { expandedRaw = Collapsed.toggled(column.key, in: expandedRaw) }
+                } else {
+                    collapsedRaw = Collapsed.toggled(column.key, in: collapsedRaw)
+                    var open = Collapsed.set(expandedRaw); open.remove(column.key)
+                    expandedRaw = open.sorted().joined(separator: ",")
+                }
+            }
+        } label: {
+            SectionTitle(name: column.name, count: count, isFolded: isFolded)
+        }
+        .buttonStyle(.plain)
+        .dsListRow()
+        .accessibilityLabel("\(column.name), \(count) task, \(isFolded ? "chiusa" : "aperta")")
     }
 }
 
@@ -203,4 +187,5 @@ struct DueDateSheet: View {
         .background(Capsule().fill(Calm.sand))
         .buttonStyle(.plain)
     }
+
 }

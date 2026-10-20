@@ -97,8 +97,8 @@ struct SidebarView: View, Equatable {
                         .padding(.horizontal, 12)
                         .padding(.top, 12)
                 }
-                .padding(.horizontal, 8)
-                .padding(.bottom, 24)
+                .padding(.horizontal, DS.gutter - DS.Space.m)
+                .padding(.bottom, DS.Space.xxl)
             }
             footer
         }
@@ -111,12 +111,12 @@ struct SidebarView: View, Equatable {
 
     private var header: some View {
         HStack {
-            Text("Aree").font(.system(size: 28, weight: .heavy)).tracking(-0.4).foregroundStyle(Calm.ink)
+            LargeTitle(text: "Aree")
             Spacer()
         }
-        .padding(.horizontal, 20)
-        .padding(.top, 8)
-        .frame(height: 60)
+        .padding(.horizontal, DS.gutter)
+        .padding(.top, DS.Size.topBar)
+        .padding(.bottom, DS.Space.m)
     }
 
     private var footer: some View {
@@ -135,15 +135,15 @@ struct SidebarView: View, Equatable {
         Button(action: action) {
             HStack(spacing: 14) {
                 Image(systemName: icon).font(.system(size: 18)).foregroundStyle(iconColor).frame(width: 26)
-                Text(title).font(.system(size: 17, weight: accent ? .semibold : .regular)).foregroundStyle(Calm.ink)
+                Text(title).font(accent ? DS.Text.headline : DS.Text.body).foregroundStyle(Calm.ink)
                 Spacer()
                 if count > 0 {
-                    Text("\(count)").font(.system(size: 15)).foregroundStyle(Calm.muted)
+                    Text("\(count)").font(DS.Text.callout).foregroundStyle(Calm.muted)
                 }
             }
-            .padding(.horizontal, 10)
-            .frame(minHeight: 50)
-            .background(RoundedRectangle(cornerRadius: 14).fill(accent ? Calm.primary.opacity(0.07) : Color.clear))
+            .padding(.horizontal, DS.Space.m)
+            .frame(minHeight: DS.Size.property)
+            .background(RoundedRectangle(cornerRadius: DS.Radius.m).fill(accent ? Calm.primary.opacity(0.07) : Color.clear))
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -163,12 +163,12 @@ struct SidebarView: View, Equatable {
                 RoundedRectangle(cornerRadius: 8).fill(tone.opacity(0.14))
                     .frame(width: 30, height: 30)
                     .overlay(Text(String(name.prefix(1))).font(.system(size: 14, weight: .bold)).foregroundStyle(tone))
-                Text(name).font(.system(size: 17)).foregroundStyle(Calm.ink).lineLimit(1)
+                Text(name).font(DS.Text.body).foregroundStyle(Calm.ink).lineLimit(1)
                 Spacer()
-                Text("\(total)").font(.system(size: 15)).foregroundStyle(Calm.muted)
+                Text("\(total)").font(DS.Text.callout).foregroundStyle(Calm.muted)
             }
-            .padding(.horizontal, 10)
-            .frame(minHeight: 50)
+            .padding(.horizontal, DS.Space.m)
+            .frame(minHeight: DS.Size.property)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

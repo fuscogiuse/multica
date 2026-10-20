@@ -61,22 +61,12 @@ struct BoardScreen: View {
     }
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack(spacing: 0) {
-                MenuButton()
-                Spacer(minLength: 4)
-                viewToggle
-                filtersMenu
-                optionsMenu
-            }
-            .padding(.horizontal, 8)
-            .frame(height: 44)
-            VStack(alignment: .leading, spacing: 2) {
-                titleMenu
-                Text(subtitle).font(.system(size: 15)).foregroundStyle(Calm.muted)
-            }
-            .padding(.horizontal, 20)
-            .padding(.bottom, 8)
+        ScreenHeader(subtitle: subtitle) {
+            titleMenu
+        } trailing: {
+            viewToggle
+            filtersMenu
+            optionsMenu
         }
     }
 
@@ -110,12 +100,11 @@ struct BoardScreen: View {
                 }
             }
         } label: {
-            HStack(spacing: 8) {
-                Text(title).font(.system(size: 30, weight: .heavy)).tracking(-0.4).lineLimit(1)
+            HStack(spacing: DS.Space.s) {
+                LargeTitle(text: title)
                 Image(systemName: "chevron.down").font(.system(size: 13, weight: .bold)).foregroundStyle(Calm.muted)
             }
-            .foregroundStyle(Calm.ink)
-            .frame(minHeight: 40)
+            .contentShape(Rectangle())
         }
         .accessibilityLabel("Cliente: \(title). Tocca per cambiare.")
     }
@@ -148,7 +137,7 @@ struct BoardScreen: View {
             }
             Button("Aggiorna", systemImage: "arrow.clockwise") { Task { await store.refresh() } }
         } label: {
-            Image(systemName: "ellipsis").font(.system(size: 17)).frame(width: 36, height: 44)
+            IconLabel(systemName: "ellipsis")
         }
         .accessibilityLabel("Altre opzioni")
     }
@@ -169,9 +158,9 @@ struct BoardScreen: View {
                     .foregroundStyle(Calm.primary)
                     .frame(minHeight: 36)
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, DS.gutter)
         }
-        .frame(height: 44)
+        .frame(height: DS.Size.topBar)
     }
 
     private func chip(_ text: String, remove: @escaping () -> Void) -> some View {
@@ -196,9 +185,7 @@ struct BoardScreen: View {
         Button {
             viewMode = viewMode == "list" ? "kanban" : "list"
         } label: {
-            Image(systemName: viewMode == "list" ? "rectangle.split.2x1" : "list.bullet")
-                .font(.system(size: 17))
-                .frame(width: 40, height: 44)
+            IconLabel(systemName: viewMode == "list" ? "rectangle.split.2x1" : "list.bullet")
         }
         .accessibilityLabel(viewMode == "list" ? "Passa a Kanban" : "Passa a Lista")
     }
@@ -224,10 +211,8 @@ struct BoardScreen: View {
                 Button("Azzera i filtri", role: .destructive) { filter.statusKey = nil; filter.due = nil }
             }
         } label: {
-            Image(systemName: count > 0 ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
-                .font(.system(size: 18))
-                .foregroundStyle(count > 0 ? Calm.primary : Calm.ink)
-                .frame(width: 40, height: 44)
+            IconLabel(systemName: count > 0 ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle",
+                      tint: count > 0 ? Calm.primary : Calm.ink)
         }
         .accessibilityLabel(count > 0 ? "Filtri, \(count) attivi" : "Filtri")
     }
