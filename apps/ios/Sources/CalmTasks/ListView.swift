@@ -5,6 +5,11 @@ struct ListView: View {
     @EnvironmentObject var store: BoardStore
     @AppStorage(Collapsed.storageKey) private var collapsedRaw = ""
     @AppStorage(Density.storageKey) private var densityRaw = Density.medium.rawValue
+    /// Empty sections start folded. These are the empty ones the user opened.
+    @AppStorage("calm.expandedEmpty") private var expandedRaw = ""
+    @State private var newTaskColumn: StatusEntry?
+    /// The client the list belongs to, used for the "Nuovo task" row.
+    var project: Project?
     let resolver: BoardResolver
     let issues: [Issue]
     /// Show the client name on each row. Off when the screen is a single client.
@@ -15,14 +20,26 @@ struct ListView: View {
     var body: some View {
         let grouped = resolver.group(issues)
         let folded = Collapsed.set(collapsedRaw)
+        let expandedEmpty = Collapsed.set(expandedRaw)
         List {
             ForEach(resolver.columns) { column in
                 let items = grouped[column.key] ?? []
-                let isFolded = folded.contains(column.key)
+                let isFolded = folded.contains(column.key) || (items.isEmpty && !expandedEmpty.contains(column.key))
                 Section {
                     if !isFolded {
                         if items.isEmpty {
-                            Text("Nessun task").font(.footnote).foregroundStyle(Calm.muted)
+                            Button { newTaskColumn = column } label: {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "plus").font(.system(size: 13, weight: .semibold))
+                                    Text("Nuovo task").font(.system(size: 14))
+                                }
+                                .foregroundStyle(Calm.primary)
+                                .frame(maxWidth: .infinity, minHeight: 40, alignment: .leading)
+                                .padding(.leading, 6)
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                            .listRowBackground(Color.white)
                         }
                         ForEach(items) { issue in
                             NavigationLink(value: issue) {
@@ -43,7 +60,16 @@ struct ListView: View {
                 } header: {
                     Button {
                         withAnimation(.easeInOut(duration: 0.2)) {
-                            collapsedRaw = Collapsed.toggled(column.key, in: collapsedRaw)
+                            if isFolded {
+                                // Open it: clear any fold and, for an empty section, remember it was opened.
+                                var keys = Collapsed.set(collapsedRaw); keys.remove(column.key)
+                                collapsedRaw = keys.sorted().joined(separator: ",")
+                                if items.isEmpty { expandedRaw = Collapsed.toggled(column.key, in: expandedRaw) }
+                            } else {
+                                collapsedRaw = Collapsed.toggled(column.key, in: collapsedRaw)
+                                var open = Collapsed.set(expandedRaw); open.remove(column.key)
+                                expandedRaw = open.sorted().joined(separator: ",")
+                            }
                         }
                     } label: {
                         HStack(spacing: 8) {
@@ -63,7 +89,6 @@ struct ListView: View {
                     .padding(.horizontal, 16)
                     .frame(maxWidth: .infinity, minHeight: density.sectionHeaderHeight, alignment: .leading)
                     .background(Color.white)
-                    .overlay(alignment: .bottom) { Rectangle().fill(Color.black.opacity(0.07)).frame(height: 1).padding(.horizontal, 16) }
                     .listRowInsets(EdgeInsets())
                     .accessibilityLabel("\(column.name), \(items.count) task, \(isFolded ? "chiusa" : "aperta")")
                     .textCase(nil)
@@ -77,5 +102,8 @@ struct ListView: View {
         .scrollContentBackground(.hidden)
         .contentMargins(.bottom, 90, for: .scrollContent)
         .refreshable { await store.refresh() }
+        .sheet(item: $newTaskColumn) { column in
+            NewTaskView(project: project, status: column.key)
+        }
     }
 }

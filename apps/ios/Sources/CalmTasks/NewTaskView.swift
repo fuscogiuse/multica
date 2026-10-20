@@ -6,6 +6,8 @@ struct NewTaskView: View {
     @Environment(\.dismiss) private var dismiss
 
     let project: Project?
+    /// Put the new task straight into this status. Nil uses the first column of the project.
+    var status: String?
 
     @State private var title = ""
     @State private var projectId: String?
@@ -62,7 +64,7 @@ struct NewTaskView: View {
     private func save() {
         saving = true
         let chosen = store.project(projectId)
-        let firstKey = store.resolver(for: chosen).columns.first?.key ?? "todo"
+        let firstKey = status ?? store.resolver(for: chosen).columns.first?.key ?? "todo"
         let body = CreateIssueBody(
             title: title.trimmingCharacters(in: .whitespacesAndNewlines),
             status: firstKey,

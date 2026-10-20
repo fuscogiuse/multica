@@ -42,7 +42,7 @@ struct BoardScreen: View {
                 } else if viewMode == "kanban" {
                     KanbanView(resolver: resolver, issues: issues)
                 } else {
-                    ListView(resolver: resolver, issues: issues, showProject: project == nil)
+                    ListView(project: activeProject, resolver: resolver, issues: issues, showProject: project == nil)
                 }
             }
         }
