@@ -1,0 +1,35 @@
+{
+ "companies": [
+  {
+   "id": "b0e799ef-c027-4999-982d-ad14d7288b45",
+   "workspace_id": "641c076b-8b60-4e20-a2ef-f773944494a2",
+   "name": "SOLID",
+   "color": "#dc4c3e",
+   "claude_config_dir": "/Users/example/.claude-solid",
+   "position": 0,
+   "created_at": "2026-10-20T07:39:21Z",
+   "updated_at": "2026-10-20T07:39:21Z"
+  },
+  {
+   "id": "0fd0adca-eaa4-4122-96df-3d48904a9d46",
+   "workspace_id": "641c076b-8b60-4e20-a2ef-f773944494a2",
+   "name": "NewTarget",
+   "color": "#eb8909",
+   "claude_config_dir": "/Users/example/.claude-newtarget",
+   "position": 1,
+   "created_at": "2026-10-20T07:39:31Z",
+   "updated_at": "2026-10-20T07:39:31Z"
+  },
+  {
+   "id": "05aed2c0-4370-476c-9f13-fc5e8914d4fd",
+   "workspace_id": "641c076b-8b60-4e20-a2ef-f773944494a2",
+   "name": "Clienti",
+   "color": "#246fe0",
+   "claude_config_dir": "/Users/example/.claude-personale",
+   "position": 2,
+   "created_at": "2026-10-20T07:39:48Z",
+   "updated_at": "2026-10-20T07:39:48Z"
+  }
+ ],
+ "total": 3
+}

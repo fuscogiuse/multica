@@ -1,0 +1,83 @@
+name: iOS
+
+# Builds and tests the native iPhone app (apps/ios) on a macOS runner.
+# Nothing here signs the app: the device install is done by hand (apps/ios/build-device.sh).
+
+on:
+  push:
+    branches: [calm-ios, calm-ui]
+    paths:
+      - "apps/ios/**"
+      - ".github/workflows/ios.yml"
+  pull_request:
+    paths:
+      - "apps/ios/**"
+      - ".github/workflows/ios.yml"
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  fixtures:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fixtures are valid JSON and carry no secrets
+        run: |
+          for f in apps/ios/Fixtures/*.json; do python3 -m json.tool "$f" > /dev/null; done
+          if grep -rEi '(mul_[a-z0-9]{10,}|eyJ[a-zA-Z0-9_-]{20,}|password|@gmail\.com)' apps/ios/Fixtures; then
+            echo "A fixture looks like it holds a secret or a real email."; exit 1
+          fi
+
+  shellcheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Shellcheck the iOS scripts
+        run: |
+          sudo apt-get install -y shellcheck
+          shellcheck apps/ios/*.sh apps/ios/*.command
+
+  build-and-test:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate the Xcode project
+        working-directory: apps/ios
+        run: xcodegen generate
+      - name: Pick a simulator
+        id: sim
+        run: |
+          xcrun simctl list devices available | grep -i iphone | head -5
+          NAME=$(xcrun simctl list devices available | grep -E "iPhone 1[5-9]" | head -1 | sed -E 's/^ *//; s/ \([0-9A-F-]+\).*//')
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+      - name: Unit tests
+        working-directory: apps/ios
+        run: |
+          set -o pipefail
+          xcodebuild test -project CalmTasks.xcodeproj -scheme CalmTasks \
+            -destination "platform=iOS Simulator,name=${{ steps.sim.outputs.name }}" \
+            -resultBundlePath build/tests.xcresult CODE_SIGNING_ALLOWED=NO | tail -n 80
+      - name: Build the app
+        working-directory: apps/ios
+        run: |
+          set -o pipefail
+          xcodebuild build -project CalmTasks.xcodeproj -scheme CalmTasks \
+            -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build/derived CODE_SIGNING_ALLOWED=NO | tail -n 40
+      - name: Upload the simulator build
+        uses: actions/upload-artifact@v4
+        with:
+          name: CalmTasks-simulator
+          path: apps/ios/build/derived/Build/Products/Debug-iphonesimulator/CalmTasks.app
+          retention-days: 14
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: apps/ios/build/tests.xcresult
+          retention-days: 7

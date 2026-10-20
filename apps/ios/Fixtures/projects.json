@@ -1,0 +1,45 @@
+{
+ "projects": [
+  {
+   "id": "39e786b4-04bf-4dcc-8acb-f4a871b44026",
+   "workspace_id": "641c076b-8b60-4e20-a2ef-f773944494a2",
+   "title": "Test senza workflow",
+   "description": null,
+   "icon": null,
+   "status": "planned",
+   "priority": "none",
+   "lead_type": null,
+   "lead_id": null,
+   "start_date": null,
+   "due_date": null,
+   "created_at": "2026-10-20T09:07:19Z",
+   "updated_at": "2026-10-20T09:07:19Z",
+   "issue_count": 0,
+   "done_count": 0,
+   "resource_count": 0,
+   "workflow_id": null,
+   "company_id": null
+  },
+  {
+   "id": "ed79bcce-fef3-42b7-abf3-ff920d368bb7",
+   "workspace_id": "641c076b-8b60-4e20-a2ef-f773944494a2",
+   "title": "EMF Boutik",
+   "description": null,
+   "icon": null,
+   "status": "planned",
+   "priority": "none",
+   "lead_type": null,
+   "lead_id": null,
+   "start_date": null,
+   "due_date": null,
+   "created_at": "2026-10-20T07:39:53Z",
+   "updated_at": "2026-10-20T09:06:29Z",
+   "issue_count": 1,
+   "done_count": 0,
+   "resource_count": 0,
+   "workflow_id": "4d067913-8b5b-4522-ae48-43fe90a5e246",
+   "company_id": "b0e799ef-c027-4999-982d-ad14d7288b45"
+  }
+ ],
+ "total": 2
+}
