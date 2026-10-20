@@ -6,6 +6,7 @@ import {
   isIssueStatusCategory,
 } from "@multica/core/issue-statuses";
 import { useIssueStatuses } from "@multica/core/issue-statuses/hooks";
+import { BUILT_IN_STATUS_LABEL } from "@multica/core/issues/config";
 import type { BuiltInIssueStatus, IssueStatusCategory } from "@multica/core/types";
 import { useT } from "../../i18n";
 
@@ -29,6 +30,12 @@ export function useStatusLabel(wsId: string) {
   return useCallback(
     (statusKey: string): string => {
       if (isBuiltInIssueStatus(statusKey)) {
+        // Calm fork: built-ins can be renamed, so a catalog name that differs
+        // from the factory English name wins over the translation.
+        const renamed = entryOf(statusKey)?.name;
+        if (renamed && renamed !== BUILT_IN_STATUS_LABEL[statusKey as BuiltInIssueStatus]) {
+          return renamed;
+        }
         return t(($) => $.status[statusKey as BuiltInIssueStatus]);
       }
       const entry = entryOf(statusKey);

@@ -103,7 +103,6 @@ import {
 } from "@multica/ui/components/ui/tooltip";
 import { ColorPicker, COLOR_PICKER_PRESETS } from "../../common/color-picker";
 import { StatusIcon } from "../../issues/components/status-icon";
-import { useStatusLabel } from "../../issues/utils/status-label";
 import { useT } from "../../i18n";
 import { AppLink, useNavigation } from "../../navigation";
 import {
@@ -319,8 +318,6 @@ function CategorySection({
   onViewIssues: (status: IssueStatusEntry) => void;
 }) {
   const { t } = useT("settings");
-  const wsId = useWorkspaceId();
-  const labelOf = useStatusLabel(wsId);
   const reorder = useReorderIssueStatuses();
   const saving = useRef(false);
 
@@ -415,7 +412,7 @@ function CategorySection({
                   key={entry.id}
                   entry={entry}
                   mergeBadgeHref={entry.key === mergeTarget && !entry.archived_at ? mergeSettingsHref : null}
-                  label={entry.is_system ? labelOf(entry.key) : entry.name}
+                  label={entry.name}
                   description={!entry.is_system
                     ? entry.description
                     : workflowUsage && !BEHAVIOR_STATUSES.has(entry.key)
@@ -586,7 +583,7 @@ function StatusRow({
             {/* Built-ins drive system behavior, so their definition is locked.
                 Say so where the actions are instead of offering them and
                 refusing afterwards. */}
-            <DropdownMenuItem disabled={entry.is_system} onClick={onEdit}>
+            <DropdownMenuItem onClick={onEdit}>
               <Pencil className="size-4" />
               {t(($) => $.issue_statuses.actions.edit)}
             </DropdownMenuItem>

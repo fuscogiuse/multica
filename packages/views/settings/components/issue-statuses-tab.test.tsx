@@ -160,7 +160,7 @@ describe("IssueStatusesTab", () => {
     const add = screen.getByLabelText(`${en.issue_statuses.add}: ${en.issue_statuses.category_labels.started}`);
     expect(add.parentElement).toHaveClass("px-4");
     expect(add).toHaveClass("size-[var(--button-height-sm)]", "shrink-0", "[@media(pointer:coarse)]:size-11");
-    for (const name of ["in_review", "QA"]) {
+    for (const name of ["In Review", "QA"]) {
       const action = screen.getByLabelText(en.issue_statuses.actions.open.replace("{{name}}", name));
       expect(action.closest(".group\\/row")).toHaveClass("pr-4");
       expect(action).toHaveClass("size-[var(--button-height-sm)]", "shrink-0", "[@media(pointer:coarse)]:size-11");
@@ -438,23 +438,23 @@ describe("IssueStatusesTab", () => {
     });
     const section = screen.getByRole("region", { name: en.issue_statuses.category_labels.started });
     expect(within(section).getAllByRole("button", { name: /^Reorder / }).map((button) => button.getAttribute("aria-label"))).toEqual([
-      "Reorder in_review", "Reorder QA",
+      "Reorder In Review", "Reorder QA",
     ]);
   });
 
-  it("locks the definition of built-in statuses where the actions are", async () => {
+  it("lets built-in statuses be renamed but not archived (Calm fork)", async () => {
     const user = userEvent.setup();
     catalog = [BUILT_IN_IN_REVIEW, entry({ key: "qa", name: "QA", position: 1 })];
     render(<IssueStatusesTab />);
     const trigger = screen.getByLabelText(
-      en.issue_statuses.actions.open.replace("{{name}}", "in_review"),
+      en.issue_statuses.actions.open.replace("{{name}}", "In Review"),
     );
     expect(trigger.className).toContain("group-focus-within/row:opacity-100");
     expect(trigger.className).toContain("data-popup-open:opacity-100");
     await user.click(trigger);
     const edit = await screen.findByRole("menuitem", { name: en.issue_statuses.actions.edit });
     const archive = screen.getByRole("menuitem", { name: en.issue_statuses.actions.archive });
-    expect(edit).toHaveAttribute("aria-disabled", "true");
+    expect(edit).not.toHaveAttribute("aria-disabled", "true");
     expect(archive).toHaveAttribute("aria-disabled", "true");
     expect(screen.getByText(en.issue_statuses.built_in_locked)).toBeInTheDocument();
     // Reordering stays available for built-ins.
@@ -462,7 +462,6 @@ describe("IssueStatusesTab", () => {
       screen.getByRole("menuitem", { name: en.issue_statuses.actions.move_down }),
     ).not.toHaveAttribute("aria-disabled", "true");
     await user.click(edit);
-    expect(screen.queryByRole("dialog")).toBeNull();
-    expect(screen.queryByRole("alertdialog")).toBeNull();
+    expect(await screen.findByRole("dialog")).toBeInTheDocument();
   });
 });
