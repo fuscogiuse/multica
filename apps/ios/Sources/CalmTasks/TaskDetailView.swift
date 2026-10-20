@@ -13,8 +13,8 @@ struct TaskDetailView: View {
     @State private var mentionables: [Mentionable] = []
     @State private var chosenMentions: [Mentionable] = []
     @State private var loadedId: String?
-    @State private var hasDue = false
-    @State private var dueDate = Date()
+    @State private var editingNotes = false
+    @State private var showDate = false
     @FocusState private var focus: Field?
 
     private enum Field { case title, notes, comment }
@@ -59,23 +59,51 @@ struct TaskDetailView: View {
                 Text([project?.title, issue.identifier].compactMap { $0 }.joined(separator: " · "))
                     .font(.footnote).foregroundStyle(Calm.muted)
 
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
-                        statusMenu(issue, resolver: resolver)
-                        priorityMenu(issue)
-                        dueControl(issue)
-                    }
+                FlowLayout(spacing: 8) {
+                    statusMenu(issue, resolver: resolver)
+                    priorityMenu(issue)
+                    dueButton(issue)
                 }
 
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Note").font(.footnote.weight(.medium)).foregroundStyle(Calm.soft)
-                    TextEditor(text: $notes)
-                        .frame(minHeight: 110)
-                        .padding(8)
-                        .scrollContentBackground(.hidden)
-                        .background(RoundedRectangle(cornerRadius: 12).fill(.white))
-                        .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Calm.line))
-                        .focused($focus, equals: .notes)
+                    HStack {
+                        Text("Note").font(.footnote.weight(.medium)).foregroundStyle(Calm.soft)
+                        Spacer()
+                        if editingNotes {
+                            Button("Fine") { commitEdits(issue); editingNotes = false; focus = nil }
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundStyle(Calm.primary)
+                        } else if !notes.isEmpty {
+                            Button("Modifica") { editingNotes = true; focus = .notes }
+                                .font(.system(size: 14))
+                                .foregroundStyle(Calm.primary)
+                        }
+                    }
+                    if editingNotes {
+                        TextEditor(text: $notes)
+                            .frame(minHeight: 200)
+                            .padding(8)
+                            .scrollContentBackground(.hidden)
+                            .background(RoundedRectangle(cornerRadius: 12).fill(.white))
+                            .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Calm.line))
+                            .focused($focus, equals: .notes)
+                    } else if notes.isEmpty {
+                        Button { editingNotes = true; focus = .notes } label: {
+                            Text("Aggiungi note…")
+                                .font(.system(size: 15)).foregroundStyle(Calm.muted)
+                                .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                                .padding(.horizontal, 12)
+                                .background(RoundedRectangle(cornerRadius: 12).strokeBorder(Calm.line))
+                        }
+                        .buttonStyle(.plain)
+                    } else {
+                        MarkdownText(source: notes)
+                            .padding(12)
+                            .background(RoundedRectangle(cornerRadius: 12).fill(Color.white))
+                            .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Calm.line))
+                            .contentShape(Rectangle())
+                            .onTapGesture { editingNotes = true; focus = .notes }
+                    }
                 }
 
                 VStack(alignment: .leading, spacing: 10) {
@@ -84,7 +112,7 @@ struct TaskDetailView: View {
                         VStack(alignment: .leading, spacing: 4) {
                             Text(comment.authorType == "agent" ? "Agente" : "Tu")
                                 .font(.system(size: 11, weight: .medium)).foregroundStyle(Calm.muted)
-                            Text(MentionText.attributed(comment.content)).font(.system(size: 15)).foregroundStyle(Calm.ink)
+                            MarkdownText(source: comment.content)
                         }
                         .padding(12)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -172,27 +200,18 @@ struct TaskDetailView: View {
         }
     }
 
-    private func dueControl(_ issue: Issue) -> some View {
-        HStack(spacing: 8) {
-            Toggle("", isOn: $hasDue)
-                .labelsHidden()
-                .onChange(of: hasDue) { _, on in
-                    if !on, issue.dueDay != nil { Task { await store.update(issue, UpdateIssueBody(clearDueDate: true)) } }
-                    if on, issue.dueDay == nil { Task { await store.update(issue, UpdateIssueBody(dueDate: DateText.day(from: dueDate))) } }
-                }
-            if hasDue {
-                DatePicker("", selection: $dueDate, displayedComponents: .date)
-                    .labelsHidden()
-                    .onChange(of: dueDate) { _, date in
-                        Task { await store.update(issue, UpdateIssueBody(dueDate: DateText.day(from: date))) }
-                    }
-            } else {
-                Text("Scadenza").font(.system(size: 13)).foregroundStyle(Calm.soft)
+    private func dueButton(_ issue: Issue) -> some View {
+        Button { showDate = true } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "calendar").font(.system(size: 13))
+                Text(issue.dueDay.map { DateText.relative($0) } ?? "Scadenza")
+                Image(systemName: "chevron.down").font(.system(size: 10))
             }
+            .foregroundStyle(issue.dueDay.map { DateText.isOverdue($0) ? Calm.red : Calm.ink } ?? Calm.soft)
+            .calmPill()
         }
-        .padding(.horizontal, 12)
-        .frame(minHeight: 36)
-        .background(Capsule().strokeBorder(Calm.line, lineWidth: 1))
+        .buttonStyle(.plain)
+        .sheet(isPresented: $showDate) { DueDateSheet(issue: issue) }
     }
 
     // MARK: Actions
@@ -202,7 +221,6 @@ struct TaskDetailView: View {
         loadedId = issue.id
         title = issue.title
         notes = issue.description ?? ""
-        if let day = issue.dueDay, let date = DateText.date(from: day) { hasDue = true; dueDate = date }
         if let client = model.auth.client {
             comments = (try? await client.comments(issueId: issue.id)) ?? []
             mentionables = await client.mentionables()

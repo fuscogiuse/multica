@@ -49,7 +49,7 @@ struct MainTabView: View {
                         .tabItem { Label("Altro", systemImage: "ellipsis") }
                         .tag(3)
                 }
-                if tab != 3 {
+                if tab != 3 && canSwipeOpen {
                     Button { newTask = .typed } label: {
                         Image(systemName: "plus")
                             .font(.system(size: 22, weight: .semibold))
