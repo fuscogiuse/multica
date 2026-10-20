@@ -7,16 +7,27 @@ struct KanbanView: View {
     let resolver: BoardResolver
     let issues: [Issue]
 
+    @AppStorage(Collapsed.storageKey) private var collapsedRaw = ""
     @State private var targeted: String?
+
+    private func toggle(_ key: String) {
+        withAnimation(.easeInOut(duration: 0.2)) { collapsedRaw = Collapsed.toggled(key, in: collapsedRaw) }
+    }
 
     var body: some View {
         let grouped = resolver.group(issues)
+        let folded = Collapsed.set(collapsedRaw)
         GeometryReader { geometry in
             ScrollView(.horizontal, showsIndicators: false) {
                 LazyHStack(alignment: .top, spacing: 12) {
                     ForEach(resolver.columns) { column in
-                        columnView(column, items: grouped[column.key] ?? [], height: geometry.size.height)
-                            .frame(width: max(geometry.size.width - 56, 240))
+                        if folded.contains(column.key) {
+                            foldedColumn(column, count: grouped[column.key]?.count ?? 0)
+                                .frame(width: 54)
+                        } else {
+                            columnView(column, items: grouped[column.key] ?? [], height: geometry.size.height)
+                                .frame(width: max(geometry.size.width - 56, 240))
+                        }
                     }
                 }
                 .scrollTargetLayout()
@@ -28,13 +39,20 @@ struct KanbanView: View {
 
     private func columnView(_ column: StatusEntry, items: [Issue], height: CGFloat) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 8) {
-                Circle().fill(Calm.statusColor(column)).frame(width: 9, height: 9)
-                Text(column.name).font(.system(size: 15, weight: .semibold)).foregroundStyle(Calm.ink)
-                Spacer()
-                Text("\(items.count)").font(.system(size: 13)).foregroundStyle(Calm.muted)
+            Button { toggle(column.key) } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "chevron.down").font(.system(size: 11, weight: .semibold)).foregroundStyle(Calm.muted)
+                    Circle().fill(Calm.statusColor(column)).frame(width: 9, height: 9)
+                    Text(column.name).font(.system(size: 15, weight: .semibold)).foregroundStyle(Calm.ink)
+                    Spacer()
+                    Text("\(items.count)").font(.system(size: 13)).foregroundStyle(Calm.muted)
+                }
+                .frame(minHeight: 36)
+                .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
             .padding(.horizontal, 4)
+            .accessibilityLabel("Comprimi \(column.name)")
 
             ScrollView {
                 LazyVStack(spacing: 8) {
@@ -56,6 +74,38 @@ struct KanbanView: View {
         .padding(10)
         .frame(maxHeight: .infinity, alignment: .top)
         .background(RoundedRectangle(cornerRadius: 14).fill(targeted == column.key ? Calm.primary.opacity(0.08) : Calm.sand))
+        .dropDestination(for: String.self) { ids, _ in
+            guard let id = ids.first, let issue = store.issues.first(where: { $0.id == id }) else { return false }
+            Task { await store.move(issue, to: column.key) }
+            return true
+        } isTargeted: { isTargeted in
+            targeted = isTargeted ? column.key : (targeted == column.key ? nil : targeted)
+        }
+    }
+
+    /// A narrow strip with the name written sideways. Tap to open; dropping a card on it still moves the task there.
+    private func foldedColumn(_ column: StatusEntry, count: Int) -> some View {
+        Button { toggle(column.key) } label: {
+            VStack(spacing: 10) {
+                Image(systemName: "chevron.right").font(.system(size: 11, weight: .semibold)).foregroundStyle(Calm.muted)
+                Circle().fill(Calm.statusColor(column)).frame(width: 9, height: 9)
+                Text("\(count)").font(.system(size: 13, weight: .medium)).foregroundStyle(Calm.muted)
+                Text(column.name)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(Calm.ink)
+                    .lineLimit(1)
+                    .fixedSize()
+                    .rotationEffect(.degrees(90))
+                    .frame(width: 20, height: 120)
+                Spacer(minLength: 0)
+            }
+            .padding(.vertical, 12)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            .background(RoundedRectangle(cornerRadius: 14).fill(targeted == column.key ? Calm.primary.opacity(0.08) : Calm.sand))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Apri \(column.name), \(count) task")
         .dropDestination(for: String.self) { ids, _ in
             guard let id = ids.first, let issue = store.issues.first(where: { $0.id == id }) else { return false }
             Task { await store.move(issue, to: column.key) }

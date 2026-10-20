@@ -17,6 +17,17 @@ public struct BoardResolver: Sendable {
         }
     }
 
+    private init(columns: [StatusEntry], statusesByKey: [String: StatusEntry]) {
+        self.columns = columns
+        self.statusesByKey = statusesByKey
+    }
+
+    /// The same board limited to one status column, or unchanged when `key` is nil or unknown.
+    public func restricting(to key: String?) -> BoardResolver {
+        guard let key, columns.contains(where: { $0.key == key }) else { return self }
+        return BoardResolver(columns: columns.filter { $0.key == key }, statusesByKey: statusesByKey)
+    }
+
     public init(statuses: [StatusEntry], workflow: Workflow?, workflowsEnabled: Bool) {
         var byKey: [String: StatusEntry] = [:]
         for status in statuses { byKey[status.key] = status }

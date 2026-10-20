@@ -31,6 +31,7 @@ struct SettingsView: View {
             .scrollContentBackground(.hidden)
             .background(Calm.warm)
             .navigationTitle("Altro")
+            .navigationBarTitleDisplayMode(.inline)
             .confirmationDialog("Uscire da Calm Tasks?", isPresented: $confirmSignOut, titleVisibility: .visible) {
                 Button("Esci", role: .destructive) { model.signOut() }
             }

@@ -27,6 +27,7 @@ struct TodayView: View {
             .contentMargins(.bottom, 90, for: .scrollContent)
             .background(Calm.warm)
             .navigationTitle("Oggi")
+            .navigationBarTitleDisplayMode(.inline)
             .refreshable { await store.refresh() }
             .navigationDestination(for: Issue.self) { issue in TaskDetailView(issueId: issue.id) }
         }

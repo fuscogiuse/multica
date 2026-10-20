@@ -30,6 +30,7 @@ struct ProjectsView: View {
             .contentMargins(.bottom, 90, for: .scrollContent)
             .background(Calm.warm)
             .navigationTitle("Progetti")
+            .navigationBarTitleDisplayMode(.inline)
             .navigationDestination(for: Project.self) { project in
                 BoardScreen(project: project, title: project.title)
             }
