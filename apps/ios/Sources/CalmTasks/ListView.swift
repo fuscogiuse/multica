@@ -32,6 +32,8 @@ struct ListView: View {
                                 }
                             }
                             .listRowInsets(EdgeInsets(top: 0, leading: 12, bottom: 0, trailing: 12))
+                            .listRowBackground(Color.white)
+                            .listRowSeparatorTint(Color.black.opacity(0.06))
                             .swipeActions(edge: .trailing) {
                                 Button("Fatto") { Task { await store.move(issue, to: resolver.doneKey) } }.tint(Calm.green)
                             }
@@ -50,7 +52,7 @@ struct ListView: View {
                                 .foregroundStyle(Calm.muted)
                                 .rotationEffect(.degrees(isFolded ? 0 : 90))
                             Circle().fill(Calm.statusColor(column)).frame(width: 9, height: 9)
-                            Text(column.name).font(.system(size: 14, weight: .semibold)).foregroundStyle(Calm.ink)
+                            Text(column.name).font(.system(size: 15, weight: .bold)).foregroundStyle(Calm.ink)
                             Text("\(items.count)").font(.system(size: 13)).foregroundStyle(Calm.muted)
                             Spacer()
                         }
@@ -60,7 +62,8 @@ struct ListView: View {
                     .buttonStyle(.plain)
                     .padding(.horizontal, 16)
                     .frame(maxWidth: .infinity, minHeight: density.sectionHeaderHeight, alignment: .leading)
-                    .background(Calm.sand)
+                    .background(Color.white)
+                    .overlay(alignment: .bottom) { Rectangle().fill(Color.black.opacity(0.07)).frame(height: 1).padding(.horizontal, 16) }
                     .listRowInsets(EdgeInsets())
                     .accessibilityLabel("\(column.name), \(items.count) task, \(isFolded ? "chiusa" : "aperta")")
                     .textCase(nil)
@@ -68,6 +71,8 @@ struct ListView: View {
             }
         }
         .listStyle(.plain)
+        .listSectionSeparator(.hidden)
+        .background(Color.white)
         .environment(\.defaultMinListRowHeight, density == .compact ? 34 : 48)
         .scrollContentBackground(.hidden)
         .contentMargins(.bottom, 90, for: .scrollContent)

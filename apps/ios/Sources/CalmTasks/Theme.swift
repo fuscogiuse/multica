@@ -7,7 +7,7 @@ enum Calm {
     static let muted = Color(hex: 0x666666)
     static let soft = Color(hex: 0x4B4B4B)
     static let primary = Color(hex: 0xDC4C3E)
-    static let warm = Color(hex: 0xFCFAF8)
+    static let warm = Color.white
     static let sand = Color(hex: 0xF6F4F1)
     static let green = Color(hex: 0x058527)
     static let blue = Color(hex: 0x246FE0)
