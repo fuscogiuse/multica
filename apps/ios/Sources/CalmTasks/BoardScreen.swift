@@ -11,7 +11,13 @@ struct BoardScreen: View {
     let title: String
 
     @AppStorage("calm.view") private var viewMode = "list"
-    @State private var filter = IssueFilter()
+    @State private var filter: IssueFilter
+
+    init(project: Project?, title: String, initialFilter: IssueFilter = IssueFilter()) {
+        self.project = project
+        self.title = title
+        _filter = State(initialValue: initialFilter)
+    }
 
     /// The project whose workflow decides the columns: the one in view, or the one picked in the filter.
     private var activeProject: Project? { project ?? store.project(filter.projectId) }
