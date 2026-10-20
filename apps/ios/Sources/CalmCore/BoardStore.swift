@@ -32,6 +32,8 @@ public final class BoardStore: ObservableObject {
     @Published public private(set) var isLoading = false
     @Published public private(set) var hasLoaded = false
     @Published public var errorMessage: String?
+    /// A short positive message, shown as a banner and then cleared.
+    @Published public var notice: String?
 
     private let api: BoardAPI
 

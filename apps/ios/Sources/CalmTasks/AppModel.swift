@@ -98,6 +98,28 @@ final class AppModel: ObservableObject {
         Task { await refresh() }
     }
 
+    /// Hands a task to the "Indagine" agent. The agent runs with the Claude profile of the task's area,
+    /// researches on its own and answers with a ready-to-apply solution. It never acts live.
+    func investigate(_ issue: Issue) async {
+        guard let client = auth.client, let store else { return }
+        do {
+            guard let agent = try await client.agents().first(where: { $0.name.lowercased() == "indagine" }) else {
+                store.errorMessage = "Manca l'agente «Indagine». Crealo in Multica."
+                return
+            }
+            let mention = Mentionable(kind: .agent, id: agent.id, name: agent.name).markup
+            let brief = """
+            \(mention) Indaga questo task e preparami una soluzione pronta da applicare.
+            Non eseguire nulla dal vivo: niente invii, pubblicazioni o modifiche a campagne, siti e account.
+            Riporta in un commento: cosa hai capito, la soluzione passo per passo, il materiale pronto da copiare, come verificarla, rischi e domande.
+            """
+            _ = try await client.addComment(issueId: issue.id, content: brief)
+            store.notice = "Indagine avviata su «\(issue.title)». La risposta arriva nei commenti."
+        } catch {
+            store.errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+        }
+    }
+
     func signOut() {
         socket?.stop()
         socket = nil

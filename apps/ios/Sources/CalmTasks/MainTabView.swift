@@ -91,6 +91,25 @@ struct MainTabView: View {
             Text(store.errorMessage ?? "")
         }
         .overlay(alignment: .top) {
+            if let notice = store.notice {
+                HStack(spacing: DS.Space.s) {
+                    Image(systemName: "sparkles").foregroundStyle(.white)
+                    Text(notice).font(DS.Text.footnote.weight(.medium)).foregroundStyle(.white).lineLimit(2)
+                }
+                .padding(.horizontal, DS.Space.l)
+                .padding(.vertical, DS.Space.m)
+                .background(Capsule().fill(Calm.ink))
+                .padding(.horizontal, DS.gutter)
+                .padding(.top, DS.Space.xs)
+                .transition(.move(edge: .top).combined(with: .opacity))
+                .task {
+                    try? await Task.sleep(nanoseconds: 3_500_000_000)
+                    withAnimation { store.notice = nil }
+                }
+            }
+        }
+        .animation(.easeOut(duration: 0.2), value: store.notice)
+        .overlay(alignment: .top) {
             if !store.hasLoaded, let message = store.errorMessage {
                 Text(message)
                     .font(.footnote.weight(.medium))

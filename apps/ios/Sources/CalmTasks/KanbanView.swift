@@ -4,6 +4,7 @@ import CalmCore
 /// One column at a time on a phone: swipe sideways, or long press a card and drag it onto another column.
 struct KanbanView: View {
     @EnvironmentObject var store: BoardStore
+    @EnvironmentObject var model: AppModel
     let resolver: BoardResolver
     let issues: [Issue]
 
@@ -53,7 +54,12 @@ struct KanbanView: View {
                         NavigationLink(value: issue) { card(issue) }
                             .buttonStyle(.plain)
                             .draggable(issue.id)
-                            .contextMenu { MoveMenu(issue: issue, resolver: resolver) }
+                            .contextMenu {
+                                MoveMenu(issue: issue, resolver: resolver)
+                                Button { Task { await model.investigate(issue) } } label: {
+                                    Label("Fai indagare l'AI", systemImage: "sparkles")
+                                }
+                            }
                             // A card dropped on another card asks to join the two.
                             .dropDestination(for: String.self) { ids, _ in
                                 guard let id = ids.first, id != issue.id,

@@ -3,6 +3,7 @@ import CalmCore
 
 struct ListView: View {
     @EnvironmentObject var store: BoardStore
+    @EnvironmentObject var model: AppModel
     @AppStorage(Collapsed.storageKey) private var collapsedRaw = ""
     @AppStorage(Density.storageKey) private var densityRaw = Density.medium.rawValue
     /// Empty sections start folded. These are the empty ones the user opened.
@@ -66,8 +67,10 @@ struct ListView: View {
                             .tint(Calm.green)
                         }
                         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                            Button { deleteIssue = issue } label: { Label("Elimina", systemImage: "trash") }
-                                .tint(Calm.red)
+                            Button { Task { await model.investigate(issue) } } label: {
+                                Label("AI", systemImage: "sparkles")
+                            }
+                            .tint(Accent.violet.color)
                             Button { Task { await store.move(issue, to: "cancelled") } } label: {
                                 Label("Archivia", systemImage: "archivebox")
                             }
@@ -75,7 +78,13 @@ struct ListView: View {
                             Button { dateIssue = issue } label: { Label("Data", systemImage: "calendar") }
                                 .tint(Calm.blue)
                         }
-                        .contextMenu { MoveMenu(issue: issue, resolver: resolver) }
+                        .contextMenu {
+                            MoveMenu(issue: issue, resolver: resolver)
+                            Button { Task { await model.investigate(issue) } } label: {
+                                Label("Fai indagare l'AI", systemImage: "sparkles")
+                            }
+                            Button(role: .destructive) { deleteIssue = issue } label: { Label("Elimina", systemImage: "trash") }
+                        }
                     }
                 }
             }
