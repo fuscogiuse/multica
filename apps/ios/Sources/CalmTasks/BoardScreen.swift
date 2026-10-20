@@ -101,39 +101,20 @@ struct BoardScreen: View {
     }
 }
 
-/// Icon filters: area, client, status, due date. Tap an icon for a pop-up menu; the choices combine.
+/// Quick filters: client, status, due date. They combine. "Cliente" is one menu: pick an area, then all its projects or one.
 struct FilterBar: View {
     @EnvironmentObject var store: BoardStore
     @Binding var filter: IssueFilter
     let fixedProject: Project?
     let resolver: BoardResolver
 
-    private var companyName: String? { store.companies.first { $0.id == filter.companyId }?.name }
-    private var projectTitle: String? { store.project(filter.projectId)?.title }
+    private var clientValue: String? {
+        if let project = store.project(filter.projectId) { return project.title }
+        if let company = store.companies.first(where: { $0.id == filter.companyId }) { return company.name }
+        return nil
+    }
+
     private var statusName: String? { filter.statusKey.map { resolver.name(for: $0) } }
-
-    private var projectChoices: [Project] {
-        guard let companyId = filter.companyId else { return store.projects }
-        return store.projects.filter { $0.companyId == companyId }
-    }
-
-    private var companyBinding: Binding<String?> {
-        Binding(
-            get: { filter.companyId },
-            set: { id in
-                filter.companyId = id
-                if let pid = filter.projectId, let id, store.project(pid)?.companyId != id { filter.projectId = nil }
-            })
-    }
-
-    private var projectBinding: Binding<String?> {
-        Binding(
-            get: { filter.projectId },
-            set: { id in
-                filter.projectId = id
-                filter.statusKey = nil
-            })
-    }
 
     private var statusColumns: [StatusEntry] {
         store.resolver(for: fixedProject ?? store.project(filter.projectId)).columns
@@ -144,20 +125,8 @@ struct FilterBar: View {
             HStack(spacing: 8) {
                 if fixedProject == nil {
                     Menu {
-                        Picker("Area", selection: companyBinding) {
-                            Text("Tutte le aree").tag(String?.none)
-                            ForEach(store.companies) { Text($0.name).tag(Optional($0.id)) }
-                        }
-                        .pickerStyle(.inline)
-                    } label: { chip(icon: "square.grid.2x2", value: companyName, name: "area") }
-
-                    Menu {
-                        Picker("Cliente", selection: projectBinding) {
-                            Text("Tutti i clienti").tag(String?.none)
-                            ForEach(projectChoices) { Text($0.title).tag(Optional($0.id)) }
-                        }
-                        .pickerStyle(.inline)
-                    } label: { chip(icon: "folder", value: projectTitle, name: "cliente") }
+                        clientMenu
+                    } label: { pill(icon: "folder", title: "Cliente", value: clientValue) }
                 }
 
                 Menu {
@@ -166,7 +135,7 @@ struct FilterBar: View {
                         ForEach(statusColumns) { Text($0.name).tag(Optional($0.key)) }
                     }
                     .pickerStyle(.inline)
-                } label: { chip(icon: "circle.dashed", value: statusName, name: "stato") }
+                } label: { pill(icon: "circle.dashed", title: "Stato", value: statusName) }
 
                 Menu {
                     Picker("Scadenza", selection: $filter.due) {
@@ -174,7 +143,7 @@ struct FilterBar: View {
                         ForEach(DueFilter.allCases, id: \.self) { Text($0.italian).tag(Optional($0)) }
                     }
                     .pickerStyle(.inline)
-                } label: { chip(icon: "calendar", value: filter.due?.italian, name: "scadenza") }
+                } label: { pill(icon: "calendar", title: "Scadenza", value: filter.due?.italian) }
 
                 if filter.isActive {
                     Button("Azzera") { filter = IssueFilter() }
@@ -189,19 +158,59 @@ struct FilterBar: View {
         .padding(.bottom, 4)
     }
 
-    /// A round icon button. With a value it grows into a dark pill that shows the choice.
-    private func chip(icon: String, value: String?, name: String) -> some View {
-        HStack(spacing: 7) {
-            Image(systemName: icon).font(.system(size: 16, weight: .medium))
-            if let value {
-                Text(value).font(.system(size: 14, weight: .semibold)).lineLimit(1)
+    /// One menu: every area is a submenu with "all projects of the area" and then each project.
+    @ViewBuilder
+    private var clientMenu: some View {
+        Button { select(company: nil, project: nil) } label: {
+            check("Tutti i clienti", on: filter.companyId == nil && filter.projectId == nil)
+        }
+        ForEach(store.companies) { company in
+            Menu(company.name) {
+                Button { select(company: company.id, project: nil) } label: {
+                    check("Tutti i progetti di \(company.name)", on: filter.companyId == company.id && filter.projectId == nil)
+                }
+                ForEach(store.projects(in: company)) { project in
+                    Button { select(company: company.id, project: project.id) } label: {
+                        check(project.title, on: filter.projectId == project.id)
+                    }
+                }
             }
         }
+        let loose = store.projects(in: nil)
+        if !loose.isEmpty {
+            Menu("Senza area") {
+                ForEach(loose) { project in
+                    Button { select(company: nil, project: project.id) } label: {
+                        check(project.title, on: filter.projectId == project.id)
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func check(_ title: String, on: Bool) -> some View {
+        if on { Label(title, systemImage: "checkmark") } else { Text(title) }
+    }
+
+    private func select(company: String?, project: String?) {
+        filter.companyId = company
+        filter.projectId = project
+        filter.statusKey = nil
+    }
+
+    /// A labelled button. With a choice made it turns dark and shows the choice instead of its name.
+    private func pill(icon: String, title: String, value: String?) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: icon).font(.system(size: 14, weight: .medium))
+            Text(value ?? title).font(.system(size: 14, weight: value == nil ? .regular : .semibold)).lineLimit(1)
+            Image(systemName: "chevron.down").font(.system(size: 9, weight: .semibold))
+        }
         .foregroundStyle(value == nil ? Calm.ink : Color.white)
-        .padding(.horizontal, value == nil ? 0 : 14)
-        .frame(minWidth: 44, minHeight: 44)
+        .padding(.horizontal, 12)
+        .frame(minHeight: 40)
         .background(Capsule().fill(value == nil ? Color.white : Calm.ink))
-        .overlay(Capsule().strokeBorder(value == nil ? Calm.line.opacity(1.8) : Color.clear, lineWidth: 1))
-        .accessibilityLabel(value.map { "Filtro \(name): \($0)" } ?? "Filtra per \(name)")
+        .overlay(Capsule().strokeBorder(value == nil ? Color.black.opacity(0.14) : Color.clear, lineWidth: 1))
+        .accessibilityLabel(value.map { "Filtro \(title): \($0)" } ?? "Filtra per \(title)")
     }
 }
