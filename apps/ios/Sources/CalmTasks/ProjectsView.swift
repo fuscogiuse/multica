@@ -27,6 +27,7 @@ struct ProjectsView: View {
             }
             .listStyle(.insetGrouped)
             .scrollContentBackground(.hidden)
+            .contentMargins(.bottom, 90, for: .scrollContent)
             .background(Calm.warm)
             .navigationTitle("Progetti")
             .navigationDestination(for: Project.self) { project in

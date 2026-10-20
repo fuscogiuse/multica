@@ -24,6 +24,7 @@ struct TodayView: View {
             }
             .listStyle(.insetGrouped)
             .scrollContentBackground(.hidden)
+            .contentMargins(.bottom, 90, for: .scrollContent)
             .background(Calm.warm)
             .navigationTitle("Oggi")
             .refreshable { await store.refresh() }

@@ -38,6 +38,7 @@ struct ListView: View {
         }
         .listStyle(.insetGrouped)
         .scrollContentBackground(.hidden)
+        .contentMargins(.bottom, 90, for: .scrollContent)
         .refreshable { await store.refresh() }
     }
 }
