@@ -25,11 +25,23 @@ The work is split into small tasks. Each task runs as its own background Claude 
 | D1 | Where the code lives | `apps/ios/` in this repo (`fuscogiuse/multica`). Same repo as the API it consumes, shared CI, one place for fixtures. |
 | D2 | Branch model | Integration branch `calm-ios`, cut from `calm-ui`. Each task branch `ios/T<nn>-<slug>` is cut from `calm-ios` and merged into it by PR. One final PR `calm-ios` into `calm-ui`. |
 | D3 | Upstream mobile app | Upstream already ships `apps/mobile` (Expo / React Native). The request is SwiftUI, so this plan does not use it. It stays a fallback if the native app proves too slow to build. |
-| D4 | Install on the iPhone | A Personal Team build cannot be signed on GitHub Actions without Giuseppe's Apple account. CI therefore builds unsigned for the simulator and uploads the result as an artifact. The device install is one manual command that Giuseppe runs himself (`TEAM=<id> ./apps/ios/build-device.sh`). It is the only local compile in the whole plan, and it is his action, not a session's. |
-| D5 | Free signing limit | A Personal Team install expires after 7 days. Re-run `build-device.sh` weekly, or move to the paid developer account (99 EUR/year) for TestFlight. |
+| D4 | How the app reaches the iPhone | See section 2.1. Recommendation: TestFlight with the paid developer account. |
+| D5 | Signing | The free Personal Team expires every 7 days and needs a Mac build for each install. The paid account (99 EUR/year) removes both limits. |
 | D6 | Auth | Email code login: `POST /auth/send-code` then `POST /auth/verify-code`. The self-hosted server prints the code in its log (`[DEV] Verification code`), so there is no email. After login, the app stores the JWT in the Keychain. Phase 2 evaluates a personal access token (`POST /api/tokens`, `mul_` prefix) to avoid re-login. |
 | D7 | Workspace | One workspace (`solid`). The app sends `X-Workspace-ID` on every request. |
 | D8 | Bundle prefix | `it.calmtasks.<user>` for the Personal Team (free teams need unique bundle ids). |
+
+### 2.1 Updating the app without plugging in the phone
+
+| Option | Cost | How an update arrives | Mac compile needed | Limits |
+|---|---|---|---|---|
+| A. TestFlight (recommended) | 99 EUR/year | CI builds and uploads. The iPhone offers the update by itself, no cable. | No | One-time setup of an App Store Connect API key and signing as GitHub secrets, done by Giuseppe. Builds last 90 days. |
+| B. Free Personal Team, wireless install | 0 | Giuseppe runs `build-device.sh`. After a one-time cable pairing it can install over Wi-Fi. | Yes, every update | Breaks the "no builds on the Mac" rule. Expires after 7 days. The phone must be unlocked and on the same network. |
+| C. Free account with AltStore or SideStore | 0 | CI publishes an unsigned `.ipa`. AltStore re-signs and refreshes it on the phone over Wi-Fi. | No | Needs AltServer running on the Mac. Weekly refresh. Not verified in this setup. |
+
+Option A is the only one that matches "install once, then it updates itself". Phase 1 gets two extra tasks for it (T13 and T14). Until the account exists, option C or B can carry the first builds.
+
+Mobile first means the iPhone is the only target. iPad and Mac layouts are out of scope.
 
 ## 3. Architecture
 
@@ -74,6 +86,16 @@ API surface used (all under `/api`, headers `Authorization: Bearer <token>` and 
 
 Phase 0 task T00 verifies each of these against the running server and records the real request and response shapes in `apps/ios/Fixtures`. No Swift model is written from memory.
 
+## 3.1 Mobile-first design rules
+
+- One column of content. Portrait only. Thumb-reach layout: primary actions at the bottom, never in a top corner.
+- Bottom tab bar: Oggi, Task, Progetti, Altro. A floating "+" opens the new task sheet.
+- Kanban shows one column at a time with a paging strip on top. Dragging a card works by long press, and a "Sposta in…" menu is always available as the non-drag path.
+- Tap targets at least 44 pt. Swipe on a row: complete, and move.
+- Sheets for editing, not full pushes. Back swipe always works.
+- Pull to refresh on every list. The live socket only updates what is on screen.
+- Loads fast on a weak connection: lists first, details on demand.
+
 ## 4. Phases and tasks
 
 Each task is small: one PR, a few files, a check that CI can run. IDs are stable. Sessions are named `ios-T<nn>-<slug>`.
@@ -87,6 +109,8 @@ Each task is small: one PR, a few files, a check that CI can run. IDs are stable
 
 - **T10 Project skeleton.** `project.yml`, empty `CalmCore` framework, empty `CalmTasks` app that shows "Calm Tasks", an asset catalog with a placeholder icon, `.gitignore` entries for `*.xcodeproj`, `build*/`, `DerivedData`. Check: CI job `ios-build` (T11).
 - **T11 CI workflow.** `.github/workflows/ios.yml` on `macos-15`: install XcodeGen, `xcodegen generate`, build for the simulator with `CODE_SIGNING_ALLOWED=NO`, run `CalmCoreTests`, upload the `.app` as an artifact. Path filter on `apps/ios/**`. Check: the workflow is green on its own PR.
+- **T13 TestFlight pipeline (needs the paid account).** A second workflow `ios-testflight.yml`, manual or on a tag: archive, sign with the secrets, upload with the App Store Connect API key. Giuseppe creates the secrets; no session ever sees them. Check: the first build appears in TestFlight.
+- **T14 Version stamping.** The build number comes from the CI run number, the marketing version from the tag. Check: two consecutive builds install over each other.
 - **T12 Device script.** `build-device.sh` adapted from GrokPe (team id, bundle prefix, `devicectl` install). README for the one manual step. Check: `shellcheck` job in CI.
 
 ### Phase 2: core library (no screens)
