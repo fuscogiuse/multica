@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { IssuesPage } from "@multica/views/issues/components";
 import { ErrorBoundary } from "@multica/ui/components/common/error-boundary";
 import { useIssueViewUrlSync } from "../../../../platform/use-issue-view-url-sync";
-import { CalmIssues, useCalmVista } from "@/components/calm/calm-issues";
+import { CalmIssues, useCalmVista } from "@multica/views/calm";
 
 function IssueViewUrlSync() {
   // useSearchParams requires a Suspense boundary in the app router.

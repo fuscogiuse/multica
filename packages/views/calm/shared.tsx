@@ -8,7 +8,7 @@ import { projectListOptions } from "@multica/core/projects";
 import { agentListOptions } from "@multica/core/workspace";
 import { agentTaskSnapshotOptions } from "@multica/core/agents";
 import type { AgentTask, Issue, IssuePriority, Project } from "@multica/core/types";
-import { ActorAvatar } from "@multica/views/common/actor-avatar";
+import { ActorAvatar } from "../common/actor-avatar";
 import { cn } from "@multica/ui/lib/utils";
 
 // Calm UI palette. The calm screens are a light, Todoist-like surface, so they

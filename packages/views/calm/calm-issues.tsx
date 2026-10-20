@@ -1,7 +1,7 @@
 "use client";
 
 import { useWorkspacePaths } from "@multica/core/paths";
-import { useNavigation } from "@multica/views/navigation";
+import { useNavigation } from "../navigation";
 import { cn } from "@multica/ui/lib/utils";
 import { CalmToday } from "./calm-today";
 import { CalmKanban } from "./calm-kanban";

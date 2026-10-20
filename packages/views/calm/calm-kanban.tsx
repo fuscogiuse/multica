@@ -9,8 +9,8 @@ import { useModalStore } from "@multica/core/modals";
 import { useWorkspacePaths } from "@multica/core/paths";
 import { agentListOptions } from "@multica/core/workspace";
 import type { AgentTask, Issue, IssueStatus, Project } from "@multica/core/types";
-import { AppLink } from "@multica/views/navigation";
-import { ActorAvatar } from "@multica/views/common/actor-avatar";
+import { AppLink } from "../navigation";
+import { ActorAvatar } from "../common/actor-avatar";
 import { cn } from "@multica/ui/lib/utils";
 import { useIsMobile } from "@multica/ui/hooks/use-mobile";
 import {

@@ -13,11 +13,11 @@ import {
 } from "@multica/ui/components/ui/sidebar";
 import { ModalRegistry } from "@multica/views/modals/registry";
 import {
-  AppSidebar,
   GlobalShortcuts,
   NavigationProgress,
 } from "@multica/views/layout";
-import { SearchCommand, SearchTrigger } from "@multica/views/search";
+import { SearchCommand } from "@multica/views/search";
+import { CalmSidebar } from "@multica/views/calm";
 import { FloatingChat } from "@multica/views/chat";
 import { WorkspaceSlugProvider, paths, useCurrentWorkspace } from "@multica/core/paths";
 import { workspaceListOptions } from "@multica/core/workspace";
@@ -271,7 +271,8 @@ export function DesktopShell() {
           >
             {slug && <GlobalShortcuts />}
             {slug && <WindowToolbar />}
-            {slug && <AppSidebar topSlot={<SidebarTopSpacer />} searchSlot={<SearchTrigger />} />}
+            {/* Calm UI fork: calm navigation replaces Multica's AppSidebar. */}
+            {slug && <CalmSidebar topSlot={<SidebarTopSpacer />} />}
             {/* Right side: header + content container */}
             <div className="flex flex-1 min-w-0 flex-col">
               <MainTopBar sidebarMounted={Boolean(slug)} />

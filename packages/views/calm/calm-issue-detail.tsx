@@ -15,10 +15,10 @@ import {
 import { projectListOptions } from "@multica/core/projects";
 import { useActorName } from "@multica/core/workspace";
 import type { AgentTask, Issue, TimelineEntry, UpdateIssueRequest } from "@multica/core/types";
-import { AppLink, useBackOrReplace } from "@multica/views/navigation";
-import { ActorAvatar } from "@multica/views/common/actor-avatar";
-import { ReadonlyContent } from "@multica/views/editor";
-import { useIssueTimeline } from "@multica/views/issues/hooks";
+import { AppLink, useBackOrReplace } from "../navigation";
+import { ActorAvatar } from "../common/actor-avatar";
+import { ReadonlyContent } from "../editor";
+import { useIssueTimeline } from "../issues/hooks";
 import {
   AssigneePicker,
   CommentInput,
@@ -26,9 +26,9 @@ import {
   IssueDetailRoute,
   PriorityPicker,
   StatusPicker,
-} from "@multica/views/issues/components";
-import { ProjectPicker } from "@multica/views/projects/components";
-import { TranscriptButton } from "@multica/views/common/task-transcript";
+} from "../issues/components";
+import { ProjectPicker } from "../projects/components";
+import { TranscriptButton } from "../common/task-transcript";
 import { cn } from "@multica/ui/lib/utils";
 import { useIsMobile } from "@multica/ui/hooks/use-mobile";
 import {

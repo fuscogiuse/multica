@@ -3,14 +3,23 @@
 import { useMemo, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useWorkspaceId } from "@multica/core/hooks";
-import { useCurrentWorkspace, useWorkspacePaths } from "@multica/core/paths";
-import { agentListOptions } from "@multica/core/workspace";
+import { paths as rootPaths, useCurrentWorkspace, useWorkspacePaths } from "@multica/core/paths";
+import { agentListOptions, workspaceListOptions } from "@multica/core/workspace";
 import { agentTaskSnapshotOptions } from "@multica/core/agents";
 import { openCreateIssueWithPreference } from "@multica/core/issues/stores/create-mode-store";
-import { AppLink, useNavigation } from "@multica/views/navigation";
-import { ActorAvatar } from "@multica/views/common/actor-avatar";
+import { AppLink, useNavigation } from "../navigation";
+import { ActorAvatar } from "../common/actor-avatar";
 import { MulticaIcon } from "@multica/ui/components/common/multica-icon";
 import { cn } from "@multica/ui/lib/utils";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@multica/ui/components/ui/dropdown-menu";
 
 /* Icons drawn to match the mockup (1.8 stroke, round caps). */
 function Svg({ children, size = 18 }: { children: ReactNode; size?: number }) {
@@ -93,24 +102,65 @@ function SmallLink({ href, active, children }: { href: string; active?: boolean;
   );
 }
 
-/** Desktop sidebar (≥768px). Hidden on phones, which get the bottom tab bar. */
-export function CalmSidebar() {
-  const { pathname, paths, onIssues, vista } = useCalmLocation();
+/** Brand block that doubles as the workspace switcher. */
+function WorkspaceSwitcher() {
   const workspace = useCurrentWorkspace();
+  const { data: workspaces = [] } = useQuery(workspaceListOptions());
+  const { push } = useNavigation();
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        render={
+          <button
+            type="button"
+            className="flex w-full items-center gap-2.5 rounded-[10px] px-2.5 py-1.5 text-left hover:bg-white/60"
+          />
+        }
+      >
+        <div className="size-7 shrink-0 rounded-[9px] bg-[#dc4c3e]" aria-hidden />
+        <div className="flex min-w-0 flex-1 flex-col">
+          <span className="text-[19px] font-medium leading-tight tracking-[-0.02em]">Calm Tasks</span>
+          {workspace?.name ? <span className="truncate text-xs text-[#666666]">{workspace.name}</span> : null}
+        </div>
+        <Svg size={14}><path d="M7 10l5 5 5-5" /></Svg>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent className="min-w-56" align="start" side="bottom" sideOffset={4}>
+        <DropdownMenuGroup>
+          <DropdownMenuLabel className="text-xs text-[#666666]">Workspace</DropdownMenuLabel>
+          {workspaces.map((ws) => (
+            <DropdownMenuItem key={ws.id} onClick={() => push(rootPaths.workspace(ws.slug).issues())}>
+              <span className="flex-1 truncate">{ws.name}</span>
+              {ws.id === workspace?.id ? <span className="text-[#dc4c3e]">●</span> : null}
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuGroup>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => push(rootPaths.newWorkspace())}>
+          <PlusIcon size={14} />
+          Nuovo workspace
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+/** Desktop sidebar (≥768px). Hidden on phones, which get the bottom tab bar. */
+export function CalmSidebar({ topSlot }: { topSlot?: ReactNode } = {}) {
+  const { pathname, paths, onIssues, vista } = useCalmLocation();
   const agents = useAgentsWithState();
   const starts = (p: string) => pathname === p || pathname.startsWith(p + "/");
 
   return (
     <nav
       aria-label="Navigazione"
-      className="hidden w-[248px] shrink-0 flex-col gap-1.5 overflow-y-auto px-[18px] py-7 font-sans text-[#202020] md:flex"
+      className={cn(
+        "hidden w-[248px] shrink-0 flex-col gap-1.5 overflow-y-auto px-[18px] font-sans text-[#202020] md:flex",
+        topSlot ? "pb-7" : "py-7",
+      )}
     >
-      <div className="flex items-center gap-2.5 px-2.5 pb-6">
-        <div className="size-7 rounded-[9px] bg-[#dc4c3e]" aria-hidden />
-        <div className="flex min-w-0 flex-col">
-          <span className="text-[19px] font-medium leading-tight tracking-[-0.02em]">Calm Tasks</span>
-          {workspace?.name ? <span className="truncate text-xs text-[#666666]">{workspace.name}</span> : null}
-        </div>
+      {topSlot}
+      <div className="pb-6">
+        <WorkspaceSwitcher />
       </div>
 
       <NavItem href={paths.issues()} active={onIssues && vista === "lista"} icon={<SunIcon />}>

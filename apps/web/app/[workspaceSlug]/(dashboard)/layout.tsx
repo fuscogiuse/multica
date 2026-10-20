@@ -9,7 +9,7 @@ import { FloatingChat } from "@multica/views/chat/floating-chat";
 import { cn } from "@multica/ui/lib/utils";
 import { WebNotificationBridge } from "@/components/web-notification-bridge";
 import { WorkspaceDocumentTitle } from "@/platform/workspace-document-title";
-import { CalmMobileBar, CalmSidebar } from "@/components/calm/calm-shell";
+import { CalmMobileBar, CalmSidebar } from "@multica/views/calm";
 
 // Issue detail pages own the whole phone screen (they pin a composer to the
 // bottom), so they skip the space reserved for the tab bar.

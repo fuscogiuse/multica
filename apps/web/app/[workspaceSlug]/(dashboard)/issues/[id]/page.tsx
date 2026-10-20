@@ -3,7 +3,7 @@
 import { use } from "react";
 import { useNavigation } from "@multica/views/navigation";
 import { ErrorBoundary } from "@multica/ui/components/common/error-boundary";
-import { CalmIssueDetail } from "@/components/calm/calm-issue-detail";
+import { CalmIssueDetail } from "@multica/views/calm";
 
 export default function IssueDetailPage({
   params,
