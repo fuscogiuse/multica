@@ -22,7 +22,7 @@ final class DemoAPI: BoardAPI {
     }
 
     func config() async throws -> AppConfig {
-        try APIClient.decoder.decode(AppConfig.self, from: Data(#"{"feature_flags":{"project_workflows_v1":true}}"#.utf8))
+        AppConfig(featureFlags: ["project_workflows_v1": true])
     }
 
     func companies() async throws -> [Company] {

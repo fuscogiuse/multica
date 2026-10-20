@@ -218,5 +218,7 @@ public struct LoginResponse: Codable, Sendable {
 public struct AppConfig: Codable, Sendable {
     public var featureFlags: [String: Bool]?
 
+    public init(featureFlags: [String: Bool]? = nil) { self.featureFlags = featureFlags }
+
     public var projectWorkflowsEnabled: Bool { featureFlags?["project_workflows_v1"] ?? false }
 }
