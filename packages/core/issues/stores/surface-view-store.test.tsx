@@ -134,17 +134,17 @@ describe("issue surface view store registry", () => {
     const projectA = getIssueSurfaceViewStore("project:a");
     const projectB = getIssueSurfaceViewStore("project:b");
 
-    projectA.getState().setViewMode("list");
+    projectA.getState().setViewMode("board");
     projectA.getState().togglePriorityFilter("high");
 
-    expect(projectA.getState().viewMode).toBe("list");
-    expect(projectB.getState().viewMode).toBe("board");
+    expect(projectA.getState().viewMode).toBe("board");
+    expect(projectB.getState().viewMode).toBe("list");
     expect(projectB.getState().priorityFilters).toEqual([]);
 
     const raw = localStorage.getItem(`${ISSUE_SURFACE_VIEW_STORAGE_KEY}:acme`);
     expect(raw).not.toBeNull();
     const parsed = JSON.parse(raw as string);
-    expect(parsed.state.surfaces["project:a"].state.viewMode).toBe("list");
+    expect(parsed.state.surfaces["project:a"].state.viewMode).toBe("board");
     expect(parsed.state.surfaces["project:a"].state.priorityFilters).toEqual([
       "high",
     ]);
@@ -189,7 +189,7 @@ describe("issue surface view store registry", () => {
     expect(projectA.getState().tableGrouping).toBe("status");
     expect(projectA.getState().tableCalculation).toBe("average");
 
-    expect(projectB.getState().viewMode).toBe("board");
+    expect(projectB.getState().viewMode).toBe("list");
     expect(
       projectB.getState().tableColumns.some((column) =>
         column.key.startsWith("property:"),
@@ -207,16 +207,16 @@ describe("issue surface view store registry", () => {
     setCurrentWorkspace("acme", "ws_a");
     await flush();
     const projectA = getIssueSurfaceViewStore("project:a");
-    projectA.getState().setViewMode("list");
+    projectA.getState().setViewMode("board");
 
     setCurrentWorkspace("beta", "ws_b");
     await flush();
-    expect(projectA.getState().viewMode).toBe("board");
+    expect(projectA.getState().viewMode).toBe("list");
     projectA.getState().setViewMode("swimlane");
 
     setCurrentWorkspace("acme", "ws_a");
     await flush();
-    expect(projectA.getState().viewMode).toBe("list");
+    expect(projectA.getState().viewMode).toBe("board");
 
     setCurrentWorkspace("beta", "ws_b");
     await flush();
@@ -228,12 +228,12 @@ describe("issue surface view store registry", () => {
     await flush();
     const projectA = getIssueSurfaceViewStore("project:a");
     const projectB = getIssueSurfaceViewStore("project:b");
-    projectA.getState().setViewMode("list");
+    projectA.getState().setViewMode("board");
     projectB.getState().setViewMode("gantt");
 
     clearIssueSurfaceViewState("project:a");
 
-    expect(projectA.getState().viewMode).toBe("board");
+    expect(projectA.getState().viewMode).toBe("list");
     expect(projectB.getState().viewMode).toBe("gantt");
     expect(getIssueSurfaceViewStateRegistrySnapshot()["project:a"]).toBeUndefined();
     expect(getIssueSurfaceViewStateRegistrySnapshot()["project:b"]?.state.viewMode).toBe(
@@ -246,15 +246,15 @@ describe("issue surface view store registry", () => {
     await flush();
     const projectA = getIssueSurfaceViewStore("project:a");
     const projectB = getIssueSurfaceViewStore("project:b");
-    projectA.getState().setViewMode("list");
+    projectA.getState().setViewMode("board");
     projectB.getState().setViewMode("gantt");
 
     pruneIssueSurfaceViewStates(["project:a"]);
 
-    expect(projectA.getState().viewMode).toBe("list");
-    expect(projectB.getState().viewMode).toBe("board");
+    expect(projectA.getState().viewMode).toBe("board");
+    expect(projectB.getState().viewMode).toBe("list");
     expect(getIssueSurfaceViewStateRegistrySnapshot()["project:a"]?.state.viewMode).toBe(
-      "list",
+      "board",
     );
     expect(getIssueSurfaceViewStateRegistrySnapshot()["project:b"]).toBeUndefined();
   });
@@ -268,7 +268,7 @@ describe("issue surface view store registry", () => {
       const viewMode = useViewStore((state) => state.viewMode);
       const setViewMode = useViewStore((state) => state.setViewMode);
       return (
-        <button type="button" onClick={() => setViewMode("list")}>
+        <button type="button" onClick={() => setViewMode("board")}>
           {viewMode}
         </button>
       );
@@ -280,10 +280,10 @@ describe("issue surface view store registry", () => {
       </ViewStoreProvider>,
     );
 
-    expect(screen.getByRole("button", { name: "board" })).toBeTruthy();
-    act(() => {
-      fireEvent.click(screen.getByRole("button", { name: "board" }));
-    });
     expect(screen.getByRole("button", { name: "list" })).toBeTruthy();
+    act(() => {
+      fireEvent.click(screen.getByRole("button", { name: "list" }));
+    });
+    expect(screen.getByRole("button", { name: "board" })).toBeTruthy();
   });
 });
