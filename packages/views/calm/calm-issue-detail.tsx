@@ -31,6 +31,7 @@ import {
 import { ProjectPicker } from "../projects/components";
 import { TranscriptButton } from "../common/task-transcript";
 import { cn } from "@multica/ui/lib/utils";
+import { ChevronLeft } from "lucide-react";
 import {
   CALM,
   useBoard,
@@ -411,9 +412,7 @@ function Header({ issue, onDone, crumb }: { issue: Issue; onDone: () => void; cr
         onClick={() => backOrReplace(paths.issues())}
         className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg text-[#202020] hover:bg-[#f6f4f1]"
       >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-          <path d="M15 18l-6-6 6-6" />
-        </svg>
+        <ChevronLeft size={18} strokeWidth={1.75} aria-hidden />
       </button>
       <span className="min-w-0 flex-1 truncate text-[13px] text-[#666666]">{crumb}</span>
       <AppLink

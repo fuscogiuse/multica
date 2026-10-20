@@ -10,7 +10,6 @@ import { ActorAvatar } from "../common/actor-avatar";
 import { cn } from "@multica/ui/lib/utils";
 import {
   byPriorityThenDue,
-  calmColumn,
   formatDueIt,
   isOpen,
   minutesSince,
@@ -20,9 +19,8 @@ import {
   statusLabel,
   useCalmData,
 } from "./shared";
-import { PlusIcon } from "./calm-shell";
+import { Plus } from "lucide-react";
 
-const NUM_WORDS = ["Niente", "Una cosa", "Due cose", "Tre cose"];
 
 function greeting(d: Date) {
   const h = d.getHours();
@@ -145,7 +143,7 @@ export function QuickAdd({ projectId, status = "todo", className }: { projectId?
   };
   return (
     <label className={cn("flex h-9 w-full items-center gap-2 rounded-lg border border-black/[0.08] bg-[#f6f4f1] px-3 lg:w-[340px]", className)}>
-      <span className="text-[#666666]"><PlusIcon size={15} /></span>
+      <span className="text-[#666666]"><Plus size={15} strokeWidth={1.75} aria-hidden /></span>
       <span className="sr-only">Nuovo task</span>
       <input
         type="text"
@@ -199,42 +197,36 @@ function SectionTitle({ children, className }: { children: ReactNode; className?
   return <h2 className={cn("mb-1 mt-2 text-[13px] font-semibold text-[#202020]", className)}>{children}</h2>;
 }
 
-export function CalmToday({ toggle }: { toggle: ReactNode }) {
+function localISO(d: Date): string {
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${d.getFullYear()}-${m}-${day}`;
+}
+
+/** Open tasks due today or earlier. Shared with the sidebar badge. */
+export function useDueToday() {
+  const { issues } = useCalmData();
+  const now = useNow();
+  const today = localISO(now);
+  return useMemo(() => {
+    const open = issues.filter(isOpen);
+    const overdue = open.filter((i) => i.due_date && i.due_date < today).sort(byPriorityThenDue);
+    const dueToday = open.filter((i) => i.due_date === today).sort(byPriorityThenDue);
+    return { overdue, dueToday, today };
+  }, [issues, today]);
+}
+
+export function CalmToday() {
   const { issues, projectById, companyOf, runningByIssue, agentName, loading } = useCalmData();
   const { completing, complete } = useComplete();
+  const { overdue, dueToday } = useDueToday();
   const paths = useWorkspacePaths();
   const now = useNow();
-  const [showLater, setShowLater] = useState(false);
 
-  const { focus, withClaude, later, openCount, recent } = useMemo(() => {
-    const open = issues.filter(isOpen);
-    const withClaude = open.filter((i) => runningByIssue.has(i.id));
-    const candidates = open
-      .filter((i) => i.status !== "backlog" && !runningByIssue.has(i.id))
-      .sort(byPriorityThenDue);
-    const focus = candidates.slice(0, 3);
-    const shown = new Set([...focus, ...withClaude].map((i) => i.id));
-    const later = open.filter((i) => !shown.has(i.id)).sort(byPriorityThenDue);
-    const recent = [...issues].sort((a, b) => b.updated_at.localeCompare(a.updated_at)).slice(0, 3);
-    return { focus, withClaude, later, openCount: open.length, recent };
-  }, [issues, runningByIssue]);
-
-  const laterGroups = useMemo(() => {
-    const groups: { key: string; label: string; items: Issue[] }[] = [
-      { key: "doing", label: "In corso", items: [] },
-      { key: "review", label: "In revisione", items: [] },
-      { key: "todo", label: "Da fare", items: [] },
-      { key: "backlog", label: "Backlog", items: [] },
-    ];
-    for (const i of later) {
-      const key = i.status === "backlog" ? "backlog" : calmColumn(i);
-      groups.find((g) => g.key === key)?.items.push(i);
-    }
-    return groups.filter((g) => g.items.length > 0);
-  }, [later]);
-
-  const top = focus[0];
-  const heading = `${greeting(now)}. ${NUM_WORDS[focus.length] ?? "Tre cose"} per oggi.`;
+  const withClaude = useMemo(() => issues.filter((i) => isOpen(i) && runningByIssue.has(i.id)), [issues, runningByIssue]);
+  const recent = useMemo(() => [...issues].sort((a, b) => b.updated_at.localeCompare(a.updated_at)).slice(0, 3), [issues]);
+  const top = overdue[0] ?? dueToday[0];
+  const total = overdue.length + dueToday.length;
 
   const row = (i: Issue) => (
     <TaskRow
@@ -250,60 +242,43 @@ export function CalmToday({ toggle }: { toggle: ReactNode }) {
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-y-auto bg-white font-sans text-[#202020]">
-      {/* Header */}
       <header className="flex flex-col gap-3 px-[22px] pb-2 pt-5 md:px-8 md:pb-3 md:pt-6 lg:flex-row lg:items-center">
-        <div className="flex min-w-0 flex-1 items-start gap-3">
-          <div className="min-w-0 flex-1">
-            <h1 className="m-0 text-xl font-semibold leading-tight tracking-[-0.01em]">
-              <span className="md:hidden">Oggi</span>
-              <span className="hidden md:inline">{heading}</span>
-            </h1>
-            <p className="m-0 mt-0.5 text-[13px] text-[#666666]">
-              <span className="hidden md:inline">{todayLine(now)} · </span>
-              {focus.length} task in focus · {openCount} aperti
-            </p>
-          </div>
-          <div>{toggle}</div>
-        </div>
-        <div className="hidden items-center gap-3 md:flex">
-          <QuickAdd />
+        <div className="min-w-0 flex-1">
+          <h1 className="m-0 text-xl font-semibold leading-tight tracking-[-0.01em]">Oggi</h1>
+          <p className="m-0 mt-0.5 text-[13px] text-[#666666]">
+            {todayLine(now)} · {total === 0 ? "niente in scadenza" : `${total} ${total === 1 ? "task" : "task"} da chiudere`}
+          </p>
         </div>
       </header>
 
-      {/* Phone: compact "Adesso" card */}
-      {top ? (
-        <div className="mx-[22px] mb-1.5 mt-2.5 flex items-center gap-3 rounded-[14px] bg-[#f6f4f1] px-4 py-3.5 md:hidden">
-          <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-            <span className="text-[13px] text-[#666666]">Adesso</span>
-            <span className="truncate text-[15px] font-semibold">{top.title}</span>
-          </div>
-          <AppLink
-            href={paths.issueDetail(top.identifier || top.id)}
-            className="inline-flex h-11 shrink-0 items-center rounded-xl bg-[#dc4c3e] px-4 text-sm font-semibold text-white no-underline"
-          >
-            Inizia focus
-          </AppLink>
-        </div>
-      ) : null}
-
       <div className="flex min-h-0 flex-1 gap-6 px-[22px] pb-10 pt-1 md:px-8">
         <section className="flex min-w-0 flex-1 flex-col">
-          <SectionTitle className="hidden md:block">Focus di oggi</SectionTitle>
           {loading ? (
-            <div className="flex flex-col gap-3 py-4">
+            <div className="flex flex-col gap-2 py-2">
               {[0, 1, 2].map((k) => (
-                <div key={k} className="h-14 animate-pulse rounded-xl bg-[#f6f4f1]" />
+                <div key={k} className="h-10 animate-pulse rounded-lg bg-[#f6f4f1]" />
               ))}
             </div>
-          ) : focus.length === 0 ? (
-            <p className="py-4 text-sm text-[#666666]">Niente in programma. Respira, oppure aggiungi un task.</p>
           ) : (
-            focus.map(row)
+            <>
+              {overdue.length > 0 ? (
+                <>
+                  <SectionTitle className="text-[#d1453b]">In ritardo</SectionTitle>
+                  {overdue.map(row)}
+                </>
+              ) : null}
+              <SectionTitle className={overdue.length > 0 ? "mt-6" : undefined}>
+                {greeting(now)}, ecco oggi
+              </SectionTitle>
+              {dueToday.length === 0 ? (
+                <p className="py-3 text-sm text-[#666666]">Nessun task in scadenza oggi.</p>
+              ) : (
+                dueToday.map(row)
+              )}
+            </>
           )}
 
-          <SectionTitle className="mt-6">
-            Con Claude adesso
-          </SectionTitle>
+          <SectionTitle className="mt-6">Con Claude adesso</SectionTitle>
           {withClaude.length === 0 ? (
             <p className="py-2 text-sm text-[#666666]">Nessun agente al lavoro in questo momento.</p>
           ) : (
@@ -315,41 +290,17 @@ export function CalmToday({ toggle }: { toggle: ReactNode }) {
                   href={paths.issueDetail(i.identifier || i.id)}
                   className="flex items-center gap-3 rounded-lg py-2 text-sm text-[#4b4b4b] no-underline hover:bg-[#fcfaf8] md:px-1.5"
                 >
-                  <RunningDot className="mx-[7px]" />
+                  <RunningDot className="mx-[5px]" />
                   <span className="min-w-0 flex-1 truncate">{i.title}</span>
-                  <span className="shrink-0 text-xs text-[#666666] md:rounded-md md:bg-[#f6f4f1] md:px-2 md:py-1 md:font-mono">
+                  <span className="shrink-0 text-xs text-[#666666]">
                     {agentName(t.agent_id)} · {minutesSince(t.started_at ?? t.dispatched_at, now.getTime())} min
                   </span>
-                  <span className="hidden w-[110px] shrink-0 text-right text-[13px] text-[#666666] md:inline">in esecuzione</span>
                 </AppLink>
               );
             })
           )}
-
-          {later.length > 0 ? (
-            <button
-              type="button"
-              onClick={() => setShowLater((v) => !v)}
-              aria-expanded={showLater}
-              className="mt-3 h-8 self-start rounded-lg px-3 text-[13px] text-[#4b4b4b] ring-1 ring-black/[0.08] hover:bg-[#fcfaf8]"
-            >
-              {showLater ? "Nascondi" : `Mostra più tardi (${later.length} ${later.length === 1 ? "task nascosto" : "task nascosti"})`}
-            </button>
-          ) : null}
-
-          {showLater
-            ? laterGroups.map((g) => (
-                <div key={g.key} className="mt-4">
-                  <SectionTitle className="text-sm text-[#4b4b4b]">
-                    {g.label} <span className="font-normal text-[#666666]">{g.items.length}</span>
-                  </SectionTitle>
-                  {g.items.map(row)}
-                </div>
-              ))
-            : null}
         </section>
 
-        {/* Desktop right column */}
         <aside className="hidden w-[260px] shrink-0 flex-col gap-3 lg:flex">
           {top ? <FocusTimer issue={top} /> : null}
           {recent.length > 0 ? (

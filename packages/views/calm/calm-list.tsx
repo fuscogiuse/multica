@@ -3,6 +3,7 @@
 import { useMemo, useState, type ReactNode } from "react";
 import type { Issue, IssueStatusEntry } from "@multica/core/types";
 import { cn } from "@multica/ui/lib/utils";
+import { ChevronRight } from "lucide-react";
 import { byPriorityThenDue, useBoard, useCalmData } from "./shared";
 import { QuickAdd, TaskRow, useComplete } from "./calm-today";
 import { CalmPageHeader } from "./calm-page";
@@ -34,9 +35,7 @@ function Section({
         title={col.description || undefined}
         className="flex h-9 items-center gap-2 border-b border-black/[0.08] text-left"
       >
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#666666" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden className={cn("transition-transform", open && "rotate-90")}>
-          <path d="M9 6l6 6-6 6" />
-        </svg>
+        <ChevronRight size={14} strokeWidth={1.75} aria-hidden className={cn("text-[#666666] transition-transform", open && "rotate-90")} />
         <span className="size-2 rounded-full" style={{ background: col.color }} />
         <span className="text-[13px] font-semibold text-[#202020]">{col.name}</span>
         <span className="text-xs text-[#666666]">{issues.length}</span>

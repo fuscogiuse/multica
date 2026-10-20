@@ -9,6 +9,7 @@ import {
 import type { IssueStatusCategory, IssueStatusEntry } from "@multica/core/types";
 import { Dialog, DialogContent, DialogTitle } from "@multica/ui/components/ui/dialog";
 import { cn } from "@multica/ui/lib/utils";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { useBoard } from "./shared";
 
 // Calm UI fork: every status is a board column. The description is the
@@ -35,9 +36,7 @@ function ArrowButton({ dir, disabled, onClick }: { dir: "up" | "down"; disabled:
       onClick={onClick}
       className="flex size-6 items-center justify-center rounded-md text-[#666666] hover:bg-[#f6f4f1] disabled:opacity-30"
     >
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-        <path d={dir === "up" ? "M6 15l6-6 6 6" : "M6 9l6 6 6-6"} />
-      </svg>
+      {dir === "up" ? <ChevronUp size={14} strokeWidth={1.75} aria-hidden /> : <ChevronDown size={14} strokeWidth={1.75} aria-hidden />}
     </button>
   );
 }

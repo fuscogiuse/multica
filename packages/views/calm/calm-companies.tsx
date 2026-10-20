@@ -23,6 +23,7 @@ import {
   DropdownMenuTrigger,
 } from "@multica/ui/components/ui/dropdown-menu";
 import { cn } from "@multica/ui/lib/utils";
+import { ChevronRight, MoreHorizontal, Plus, Settings } from "lucide-react";
 import { AppLink, useNavigation } from "../navigation";
 import { CALM } from "./shared";
 import { useCalmHref, useCalmVista } from "./calm-issues";
@@ -48,20 +49,7 @@ function useClaudeProfiles(): ClaudeProfile[] {
 }
 
 function Chevron({ open }: { open: boolean }) {
-  return (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden className={cn("transition-transform", open && "rotate-90")}>
-      <path d="M9 6l6 6-6 6" />
-    </svg>
-  );
-}
-
-function GearIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <circle cx="12" cy="12" r="3" />
-      <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" />
-    </svg>
-  );
+  return <ChevronRight size={14} strokeWidth={1.75} aria-hidden className={cn("transition-transform", open && "rotate-90")} />;
 }
 
 /** Create or edit a company: name, color and Claude profile. */
@@ -284,7 +272,7 @@ function ProjectLink({
             />
           }
         >
-          ⋯
+          <MoreHorizontal size={14} strokeWidth={1.75} aria-hidden />
         </DropdownMenuTrigger>
         <DropdownMenuContent className="min-w-52" align="start" side="right">
           <DropdownMenuLabel className="text-xs text-[#666666]">Sposta in</DropdownMenuLabel>
@@ -344,11 +332,11 @@ function CompanyGroup({
         )}
         {onEdit ? (
           <button type="button" aria-label="Impostazioni company" onClick={onEdit} className="flex size-7 items-center justify-center rounded-md text-[#666666] opacity-0 hover:bg-white group-hover:opacity-100">
-            <GearIcon />
+            <Settings size={14} strokeWidth={1.75} aria-hidden />
           </button>
         ) : null}
         <button type="button" aria-label="Nuovo progetto" onClick={() => { setOpen(true); setAdding(true); }} className="flex size-7 items-center justify-center rounded-md text-[#666666] opacity-0 hover:bg-white group-hover:opacity-100">
-          +
+          <Plus size={14} strokeWidth={1.75} aria-hidden />
         </button>
       </div>
       {open ? (
@@ -393,7 +381,7 @@ export function CompanyNav() {
 
   return (
     <div className="flex flex-col gap-0.5">
-      <span className="px-2.5 pb-1 text-xs text-[#666666]">Company</span>
+      <span className="px-2 pb-1 text-[13px] font-semibold text-[#5f5f5f]">I miei progetti</span>
       {companies.map((c) => (
         <CompanyGroup
           key={c.id}
@@ -417,9 +405,9 @@ export function CompanyNav() {
           setEditing(undefined);
           setDialogOpen(true);
         }}
-        className="flex h-7 items-center px-2.5 text-left text-[13px] text-[#4b4b4b] hover:text-[#202020]"
+        className="flex h-7 items-center gap-1.5 px-2 text-left text-[13px] text-[#5f5f5f] hover:text-[#202020]"
       >
-        + Nuova company
+        <Plus size={14} strokeWidth={1.75} aria-hidden /> Nuova company
       </button>
       <CompanyDialog company={editing} open={dialogOpen} onOpenChange={setDialogOpen} />
     </div>

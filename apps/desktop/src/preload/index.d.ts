@@ -21,6 +21,8 @@ import type { TabSelectionShortcutKey } from "../shared/main-renderer-messages";
 interface DesktopAPI {
   /** Calm UI fork: Claude Code profiles (CLAUDE_CONFIG_DIR folders) on this Mac. */
   listClaudeProfiles: () => Promise<{ name: string; dir: string }[]>;
+  /** Calm UI fork: writes feedback notes to ~/.multica/calm-feedback.md. */
+  saveFeedback: (markdown: string) => Promise<void>;
   /** App version + normalized OS, captured synchronously at preload time. */
   appInfo: {
     version: string;

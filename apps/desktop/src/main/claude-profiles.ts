@@ -1,5 +1,5 @@
 import { ipcMain } from "electron";
-import { readdir, readFile, stat } from "fs/promises";
+import { mkdir, readdir, readFile, stat, writeFile } from "fs/promises";
 import { homedir } from "os";
 import { join } from "path";
 
@@ -60,6 +60,14 @@ export async function listClaudeProfiles(): Promise<ClaudeProfile[]> {
   return out;
 }
 
+/** Feedback notes from the calm feedback mode, kept where a Claude session can read them. */
+export const FEEDBACK_PATH = join(homedir(), ".multica", "calm-feedback.md");
+
 export function setupClaudeProfiles(): void {
   ipcMain.handle("calm:list-claude-profiles", () => listClaudeProfiles());
+  ipcMain.handle("calm:save-feedback", async (_event, markdown: unknown) => {
+    if (typeof markdown !== "string") return;
+    await mkdir(join(homedir(), ".multica"), { recursive: true });
+    await writeFile(FEEDBACK_PATH, markdown.slice(0, 1_000_000), "utf-8");
+  });
 }

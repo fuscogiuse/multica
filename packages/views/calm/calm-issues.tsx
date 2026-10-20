@@ -31,14 +31,13 @@ export function useCalmHref() {
   };
 }
 
-/** Segmented Lista | Kanban | Oggi switch, persisted in ?vista=. */
+/** Segmented Lista | Kanban switch, persisted in ?vista=. */
 export function CalmViewToggle({ value }: { value: CalmVista }) {
   const { replace } = useNavigation();
   const href = useCalmHref();
   const opts: { key: CalmVista; label: string }[] = [
     { key: "lista", label: "Lista" },
     { key: "kanban", label: "Kanban" },
-    { key: "oggi", label: "Oggi" },
   ];
   return (
     <div role="tablist" aria-label="Vista" className="inline-flex gap-0.5 rounded-lg bg-[#f6f4f1] p-0.5">
@@ -64,6 +63,6 @@ export function CalmViewToggle({ value }: { value: CalmVista }) {
 export function CalmIssues({ vista }: { vista: Exclude<CalmVista, "tutti"> }) {
   const toggle = <CalmViewToggle value={vista} />;
   if (vista === "kanban") return <CalmKanban toggle={toggle} />;
-  if (vista === "oggi") return <CalmToday toggle={toggle} />;
+  if (vista === "oggi") return <CalmToday />;
   return <CalmList toggle={toggle} />;
 }
