@@ -49,6 +49,7 @@ write_env() {
   set_env MULTICA_APP_URL "$url"
   set_env CORS_ALLOWED_ORIGINS "$url"
   set_env DO_NOT_TRACK 1
+  set_env FF_PROJECT_WORKFLOWS_V1 true
 }
 
 case "${1:-setup}" in
