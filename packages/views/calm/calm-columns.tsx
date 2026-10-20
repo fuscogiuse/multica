@@ -10,6 +10,7 @@ import type { IssueStatusCategory, IssueStatusEntry } from "@multica/core/types"
 import { Dialog, DialogContent, DialogTitle } from "@multica/ui/components/ui/dialog";
 import { cn } from "@multica/ui/lib/utils";
 import { ChevronDown, ChevronUp } from "lucide-react";
+import { useFeatureEnabled } from "@multica/core/config";
 import { useBoard } from "./shared";
 
 // Calm UI fork: every status is a board column. The description is the
@@ -57,6 +58,8 @@ function ColumnRow({
   const [name, setName] = useState(entry.name);
   const [desc, setDesc] = useState(entry.description);
   const [open, setOpen] = useState(false);
+  // With workflows on, agent instructions live in the workflow, not here.
+  const workflowsOn = useFeatureEnabled("project_workflows_v1");
   useEffect(() => {
     setName(entry.name);
     setDesc(entry.description);
@@ -101,15 +104,15 @@ function ColumnRow({
           aria-expanded={open}
           className="h-7 shrink-0 rounded-md px-2 text-xs text-[#4b4b4b] hover:bg-white"
         >
-          {open ? "Chiudi" : "Istruzioni"}
+          {open ? "Chiudi" : workflowsOn ? "Colore" : "Istruzioni"}
         </button>
       </div>
-      {!open && entry.description ? (
+      {!workflowsOn && !open && entry.description ? (
         <p className="m-0 truncate pl-[52px] text-xs text-[#666666]">{entry.description}</p>
       ) : null}
       {open ? (
         <div className="flex flex-col gap-2 pl-[52px] pr-1">
-          <textarea
+          {workflowsOn ? null : <textarea
             value={desc}
             onChange={(e) => setDesc(e.target.value)}
             onBlur={saveDesc}
@@ -117,7 +120,7 @@ function ColumnRow({
             maxLength={256}
             placeholder="Quando va qui un task? L'agente legge questa istruzione per decidere dove spostarlo."
             className={cn(fieldCls, "resize-none py-2 leading-relaxed")}
-          />
+          />}
           <div className="flex items-center gap-1.5">
             {COLORS.map((c) => (
               <button
@@ -206,6 +209,7 @@ function NewColumn({ nextPosition }: { nextPosition: number }) {
 }
 
 export function ColumnsDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+  const workflowsOn = useFeatureEnabled("project_workflows_v1");
   const board = useBoard();
   const update = useUpdateIssueStatus();
   const rows = board.all.slice().sort((a, b) => a.position - b.position);
@@ -227,7 +231,9 @@ export function ColumnsDialog({ open, onOpenChange }: { open: boolean; onOpenCha
         <div>
           <DialogTitle className="text-base font-semibold">Colonne</DialogTitle>
           <p className="m-0 mt-1 text-[13px] text-[#666666]">
-            Rinominale, riordinale e scrivi un'istruzione per ognuna. Gli agenti la usano per scegliere dove spostare i task.
+            {workflowsOn
+              ? "Rinominale, riordinale, cambia il colore o nascondile. Le istruzioni per gli agenti si scrivono nel workflow."
+              : "Rinominale, riordinale e scrivi un'istruzione per ognuna. Gli agenti la usano per scegliere dove spostare i task."}
           </p>
         </div>
         <div className="flex max-h-[60vh] flex-col gap-0.5 overflow-y-auto">

@@ -4,6 +4,10 @@ import { useState, type ReactNode } from "react";
 import { openCreateIssueWithPreference } from "@multica/core/issues/stores/create-mode-store";
 import { useModalStore } from "@multica/core/modals";
 import { useWorkspacePaths } from "@multica/core/paths";
+import { useFeatureEnabled } from "@multica/core/config";
+import { useWorkspaceId } from "@multica/core/hooks";
+import { useProjectWorkflow } from "@multica/core/issue-workflows";
+import { ProjectWorkflowMenu } from "../workflows/project-workflow-menu";
 import { useNavigation } from "../navigation";
 import { useCalmData } from "./shared";
 import { ColumnsDialog } from "./calm-columns";
@@ -17,9 +21,12 @@ export const calmPrimaryButton =
 /** One title row for Lista and Kanban: scope, view switch, columns, new task. */
 export function CalmPageHeader({ fallbackTitle, toggle }: { fallbackTitle: string; toggle: ReactNode }) {
   const { projectById, companyById, scope } = useCalmData();
-  const { searchParams, replace } = useNavigation();
+  const { searchParams, replace, push } = useNavigation();
   const paths = useWorkspacePaths();
   const [columnsOpen, setColumnsOpen] = useState(false);
+  const wsId = useWorkspaceId();
+  const workflowsOn = useFeatureEnabled("project_workflows_v1");
+  const workflow = useProjectWorkflow(wsId, workflowsOn ? scope.projectId : null);
 
   const scopeProject = scope.projectId ? projectById.get(scope.projectId) : undefined;
   const scopeCompany = scope.companyId
@@ -48,7 +55,14 @@ export function CalmPageHeader({ fallbackTitle, toggle }: { fallbackTitle: strin
         ) : null}
       </div>
       {toggle}
-      <button type="button" onClick={() => setColumnsOpen(true)} className={`${calmButton} hidden md:inline-flex`}>
+      {workflowsOn && scopeProject ? <ProjectWorkflowMenu project={scopeProject} /> : null}
+      <button
+        type="button"
+        onClick={() => {
+          if (!workflowsOn) return setColumnsOpen(true);
+          const base = `${paths.settings()}?tab=workflows`;
+          push(workflow ? `${base}&workflow=${workflow.id}` : base);
+        }} className={`${calmButton} hidden md:inline-flex`}>
         Colonne
       </button>
       <button
