@@ -46,12 +46,15 @@ struct BoardScreen: View {
             }
         }
         .background(Calm.warm.ignoresSafeArea())
-        .overlay(alignment: .bottomLeading) { floatingBar }
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) { MenuButton() }
             ToolbarItem(placement: .principal) { titleMenu }
-            ToolbarItem(placement: .topBarTrailing) { optionsMenu }
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                viewToggle
+                filtersMenu
+                optionsMenu
+            }
         }
         .navigationDestination(for: Issue.self) { issue in TaskDetailView(issueId: issue.id) }
     }
@@ -124,7 +127,7 @@ struct BoardScreen: View {
             }
             Button("Aggiorna", systemImage: "arrow.clockwise") { Task { await store.refresh() } }
         } label: {
-            Image(systemName: "ellipsis").frame(width: 44, height: 44)
+            Image(systemName: "ellipsis").font(.system(size: 17)).frame(width: 36, height: 44)
         }
         .accessibilityLabel("Altre opzioni")
     }
@@ -166,36 +169,17 @@ struct BoardScreen: View {
         .accessibilityLabel("\(text). Tocca per togliere il filtro.")
     }
 
-    // MARK: Floating bar
+    // MARK: View switch and filters, in the top bar
 
-    private var floatingBar: some View {
-        HStack(spacing: 2) {
-            segment("Lista", icon: "list.bullet", on: viewMode == "list") { viewMode = "list" }
-            segment("Kanban", icon: "rectangle.split.2x1", on: viewMode == "kanban") { viewMode = "kanban" }
-            Rectangle().fill(Color.white.opacity(0.35)).frame(width: 1, height: 22).padding(.horizontal, 4)
-            filtersMenu
+    private var viewToggle: some View {
+        Button {
+            viewMode = viewMode == "list" ? "kanban" : "list"
+        } label: {
+            Image(systemName: viewMode == "list" ? "rectangle.split.2x1" : "list.bullet")
+                .font(.system(size: 17))
+                .frame(width: 40, height: 44)
         }
-        .padding(5)
-        .background(Capsule().fill(Calm.bar))
-        .shadow(color: .black.opacity(0.18), radius: 10, y: 4)
-        .padding(.leading, 16)
-        .padding(.bottom, 21)
-    }
-
-    private func segment(_ name: String, icon: String, on: Bool, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            HStack(spacing: 6) {
-                Image(systemName: icon).font(.system(size: 14, weight: .medium))
-                Text(name).font(.system(size: 14, weight: on ? .semibold : .regular))
-            }
-            .foregroundStyle(on ? Calm.bar : Color.white)
-            .padding(.horizontal, 12)
-            .frame(height: 42)
-            .background(Capsule().fill(on ? Color.white : Color.clear))
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(name)
-        .accessibilityAddTraits(on ? .isSelected : [])
+        .accessibilityLabel(viewMode == "list" ? "Passa a Kanban" : "Passa a Lista")
     }
 
     private var filtersMenu: some View {
@@ -219,19 +203,10 @@ struct BoardScreen: View {
                 Button("Azzera i filtri", role: .destructive) { filter.statusKey = nil; filter.due = nil }
             }
         } label: {
-            HStack(spacing: 6) {
-                Image(systemName: "line.3.horizontal.decrease").font(.system(size: 14, weight: .medium))
-                Text("Filtri").font(.system(size: 14))
-                if count > 0 {
-                    Text("\(count)").font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(Calm.bar)
-                        .frame(minWidth: 18, minHeight: 18)
-                        .background(Circle().fill(Color.white))
-                }
-            }
-            .foregroundStyle(Color.white)
-            .padding(.horizontal, 12)
-            .frame(height: 42)
+            Image(systemName: count > 0 ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
+                .font(.system(size: 18))
+                .foregroundStyle(count > 0 ? Calm.primary : Calm.ink)
+                .frame(width: 40, height: 44)
         }
         .accessibilityLabel(count > 0 ? "Filtri, \(count) attivi" : "Filtri")
     }

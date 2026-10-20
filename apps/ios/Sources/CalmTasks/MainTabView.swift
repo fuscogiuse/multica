@@ -100,7 +100,6 @@ struct MainTabView: View {
                 .allowsHitTesting(sidebar.isOpen || drag != nil)
                 .accessibilityHidden(!sidebar.isOpen)
         }
-        .animation(.easeOut(duration: 0.22), value: sidebar.isOpen)
         .environmentObject(sidebar)
         .sheet(item: $newTask) { mode in
             NewTaskView(project: currentProject, startDictation: mode == .dictated)
@@ -185,7 +184,7 @@ struct MainTabView: View {
     }
 
     private func close() {
-        withAnimation(.easeOut(duration: 0.2)) { sidebar.close() }
+        sidebar.close()
     }
 
     /// Launch arguments used by the CI screenshots: `-calm.openProject <id>` and `-calm.sidebar open|manage`.

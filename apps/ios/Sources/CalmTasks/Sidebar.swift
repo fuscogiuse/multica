@@ -12,8 +12,8 @@ enum BoardScope: Hashable {
 @MainActor
 final class SidebarState: ObservableObject {
     @Published var isOpen = false
-    func open() { isOpen = true }
-    func close() { isOpen = false }
+    func open() { withAnimation(.easeOut(duration: 0.22)) { isOpen = true } }
+    func close() { withAnimation(.easeOut(duration: 0.2)) { isOpen = false } }
 }
 
 /// Clients the user chose to hide from the sidebar. Stored on this device as a comma separated list of project ids.
@@ -39,27 +39,15 @@ struct SidebarView: View {
 
     private var hidden: Set<String> { HiddenProjects.set(hiddenRaw) }
 
-    private func openCount(_ project: Project) -> Int {
-        let resolver = store.resolver(for: project)
-        return store.issues(in: project).filter { resolver.column(for: $0) != nil }.count
-    }
-
-    private var todayCount: Int {
-        Today.dueOrOverdue(store.issues, resolver: store.resolver(for: nil), today: Today.dayString()).count
-    }
-
-    private var allOpenCount: Int {
-        let resolver = store.resolver(for: nil)
-        return store.issues.filter { resolver.column(for: $0) != nil }.count
-    }
+    private func openCount(_ project: Project) -> Int { store.openCounts[project.id] ?? 0 }
 
     var body: some View {
         VStack(spacing: 0) {
             header
             ScrollView {
                 VStack(spacing: 2) {
-                    row(icon: "calendar", title: "Oggi", count: todayCount, accent: true) { onToday() }
-                    row(icon: "checklist", title: "Tutti i task", count: allOpenCount, accent: false) { onScope(.all) }
+                    row(icon: "calendar", title: "Oggi", count: store.todayCount, accent: true) { onToday() }
+                    row(icon: "checklist", title: "Tutti i task", count: store.allOpenCount, accent: false) { onScope(.all) }
 
                     Text("Aree")
                         .font(.system(size: 13, weight: .semibold))
@@ -123,8 +111,8 @@ struct SidebarView: View {
     private func row(icon: String, title: String, count: Int, accent: Bool, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             HStack(spacing: 12) {
-                Image(systemName: icon).font(.system(size: 18)).foregroundStyle(Calm.soft).frame(width: 24)
-                Text(title).font(.system(size: 17)).foregroundStyle(Calm.ink)
+                Image(systemName: icon).font(.system(size: 17)).foregroundStyle(Calm.soft).frame(width: 24)
+                Text(title).font(.system(size: 16)).foregroundStyle(Calm.ink)
                 Spacer()
                 if count > 0 {
                     Text("\(count)").font(.system(size: 13, weight: accent ? .semibold : .regular))
@@ -132,7 +120,7 @@ struct SidebarView: View {
                 }
             }
             .padding(.horizontal, 12)
-            .frame(minHeight: 48)
+            .frame(minHeight: 44)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -148,13 +136,13 @@ struct SidebarView: View {
             if let scope { onScope(scope) }
         } label: {
             HStack(spacing: 12) {
-                Circle().fill(colorHex.flatMap { Color(hexString: $0) } ?? Calm.muted).frame(width: 12, height: 12)
-                Text(name).font(.system(size: 18, weight: .semibold)).foregroundStyle(Calm.ink).lineLimit(1)
+                Circle().fill(colorHex.flatMap { Color(hexString: $0) } ?? Calm.muted).frame(width: 11, height: 11)
+                Text(name).font(.system(size: 16, weight: .semibold)).foregroundStyle(Calm.ink).lineLimit(1)
                 Spacer()
-                Text("\(total)").font(.system(size: 14)).foregroundStyle(Calm.muted)
+                Text("\(total)").font(.system(size: 13)).foregroundStyle(Calm.muted)
             }
             .padding(.horizontal, 12)
-            .frame(minHeight: 52)
+            .frame(minHeight: 46)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

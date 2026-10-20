@@ -22,7 +22,11 @@ public final class BoardStore: ObservableObject {
     @Published public private(set) var projects: [Project] = []
     @Published public private(set) var statuses: [StatusEntry] = []
     @Published public private(set) var workflows: [Workflow] = []
-    @Published public private(set) var issues: [Issue] = []
+    @Published public private(set) var issues: [Issue] = [] { didSet { recomputeCounts() } }
+    /// Open tasks per project, ready for the sidebar so it does no work while it animates.
+    @Published public private(set) var openCounts: [String: Int] = [:]
+    @Published public private(set) var todayCount = 0
+    @Published public private(set) var allOpenCount = 0
     @Published public private(set) var workflowsEnabled = false
     @Published public private(set) var isLoading = false
     @Published public private(set) var hasLoaded = false
@@ -54,6 +58,18 @@ public final class BoardStore: ObservableObject {
         } catch {
             errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
         }
+    }
+
+    private func recomputeCounts() {
+        var counts: [String: Int] = [:]
+        for project in projects {
+            let resolver = resolver(for: project)
+            counts[project.id] = issues.filter { $0.projectId == project.id && resolver.column(for: $0) != nil }.count
+        }
+        openCounts = counts
+        let catalog = resolver(for: nil)
+        allOpenCount = issues.filter { catalog.column(for: $0) != nil }.count
+        todayCount = Today.dueOrOverdue(issues, resolver: catalog, today: Today.dayString()).count
     }
 
     // MARK: Lookups
