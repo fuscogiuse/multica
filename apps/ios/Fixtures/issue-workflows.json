@@ -1,0 +1,126 @@
+{
+ "total": 2,
+ "workflows": [
+  {
+   "id": "7e982ef4-c062-4227-9671-8205461bb648",
+   "workspace_id": "641c076b-8b60-4e20-a2ef-f773944494a2",
+   "name": "Default",
+   "description": "",
+   "is_default": true,
+   "steps": [
+    {
+     "status_key": "backlog",
+     "handler": {
+      "type": "none"
+     },
+     "instructions": ""
+    },
+    {
+     "status_key": "todo",
+     "handler": {
+      "type": "none"
+     },
+     "instructions": ""
+    },
+    {
+     "status_key": "in_progress",
+     "handler": {
+      "type": "none"
+     },
+     "instructions": ""
+    },
+    {
+     "status_key": "in_review",
+     "handler": {
+      "type": "none"
+     },
+     "instructions": ""
+    },
+    {
+     "status_key": "blocked",
+     "handler": {
+      "type": "none"
+     },
+     "instructions": ""
+    },
+    {
+     "status_key": "done",
+     "handler": {
+      "type": "none"
+     },
+     "instructions": ""
+    },
+    {
+     "status_key": "cancelled",
+     "handler": {
+      "type": "none"
+     },
+     "instructions": ""
+    }
+   ],
+   "project_ids": [
+    "39e786b4-04bf-4dcc-8acb-f4a871b44026"
+   ],
+   "created_at": "2026-10-20T08:54:06Z",
+   "updated_at": "2026-10-20T08:54:06Z"
+  },
+  {
+   "id": "4d067913-8b5b-4522-ae48-43fe90a5e246",
+   "workspace_id": "641c076b-8b60-4e20-a2ef-f773944494a2",
+   "name": "EMF Boutik",
+   "description": "",
+   "is_default": false,
+   "steps": [
+    {
+     "status_key": "todo",
+     "handler": {
+      "type": "none"
+     },
+     "instructions": ""
+    },
+    {
+     "status_key": "bozza",
+     "handler": {
+      "type": "none"
+     },
+     "instructions": ""
+    },
+    {
+     "status_key": "in_progress",
+     "handler": {
+      "type": "agent",
+      "id": "22b9717e-67e5-4c88-bb7b-a836b9dfd55b"
+     },
+     "instructions": "Lavora il task e spostalo in In revisione quando hai finito.",
+     "next_status_key": "in_review"
+    },
+    {
+     "status_key": "in_review",
+     "handler": {
+      "type": "none"
+     },
+     "instructions": ""
+    },
+    {
+     "status_key": "done",
+     "handler": {
+      "type": "none"
+     },
+     "instructions": ""
+    },
+    {
+     "status_key": "cancelled",
+     "handler": {
+      "type": "none"
+     },
+     "instructions": ""
+    }
+   ],
+   "project_ids": [
+    "ed79bcce-fef3-42b7-abf3-ff920d368bb7"
+   ],
+   "created_at": "2026-10-20T09:06:03Z",
+   "updated_at": "2026-10-20T09:06:03Z"
+  }
+ ]
+}

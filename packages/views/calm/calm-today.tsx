@@ -20,6 +20,7 @@ import {
   useCalmData,
 } from "./shared";
 import { Plus } from "lucide-react";
+import { InvestigateButton } from "./calm-investigate";
 
 
 function greeting(d: Date) {
@@ -104,7 +105,7 @@ export function TaskRow({
     <AppLink
       href={paths.issueDetail(issue.identifier || issue.id)}
       className={cn(
-        "flex items-start gap-3 border-b border-black/[0.06] py-2.5 text-[#202020] no-underline transition-opacity duration-300 hover:bg-[#fcfaf8] md:items-center md:px-1.5",
+        "group/row flex items-start gap-3 border-b border-black/[0.06] py-2.5 text-[#202020] no-underline transition-opacity duration-300 hover:bg-[#fcfaf8] md:items-center md:px-1.5",
         completing && "opacity-40",
       )}
     >
@@ -128,6 +129,7 @@ export function TaskRow({
         </span>
       </div>
       <span className="hidden md:inline-flex"><AssigneeChip issue={issue} /></span>
+      <InvestigateButton issue={issue} className="hidden opacity-0 group-hover/row:opacity-100 md:inline-flex" />
       {hideStatus ? null : <span className="hidden w-[100px] shrink-0 text-right text-xs text-[#666666] md:inline">{statusLabel(issue)}</span>}
     </AppLink>
   );

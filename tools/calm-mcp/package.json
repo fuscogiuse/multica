@@ -1,0 +1,15 @@
+{
+  "name": "calm-mcp",
+  "private": true,
+  "version": "0.1.0",
+  "description": "MCP connector that lets a remote assistant control a self-hosted Calm Tasks (Multica) workspace.",
+  "type": "module",
+  "main": "server.mjs",
+  "scripts": {
+    "start": "node server.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.32.1",
+    "zod": "3.25.76"
+  }
+}

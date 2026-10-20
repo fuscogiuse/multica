@@ -11,6 +11,7 @@ import { cn } from "@multica/ui/lib/utils";
 import { useIsMobile } from "@multica/ui/hooks/use-mobile";
 import { byPriorityThenDue, ContextLabel, formatDueIt, useBoard, useCalmData } from "./shared";
 import { CalmPageHeader } from "./calm-page";
+import { InvestigateButton } from "./calm-investigate";
 
 const CLOSED_LIMIT = 8;
 
@@ -36,7 +37,7 @@ function KanbanCard({
         e.dataTransfer.setData("text/calm-issue", issue.id);
         e.dataTransfer.effectAllowed = "move";
       }}
-      className="flex flex-col gap-2 rounded-[10px] bg-white px-3 py-2.5 text-[#202020] no-underline shadow-[0_1px_2px_rgba(0,0,0,0.08)] transition-shadow hover:shadow-[0_2px_8px_rgba(0,0,0,0.10)]"
+      className="group/card flex flex-col gap-2 rounded-[10px] bg-white px-3 py-2.5 text-[#202020] no-underline shadow-[0_1px_2px_rgba(0,0,0,0.08)] transition-shadow hover:shadow-[0_2px_8px_rgba(0,0,0,0.10)]"
     >
       <ContextLabel project={project} company={company} />
       <span className="text-sm font-medium leading-snug">{issue.title}</span>
@@ -50,6 +51,7 @@ function KanbanCard({
         <span>{issue.identifier}</span>
         {issue.due_date ? <span>{formatDueIt(issue.due_date)}</span> : null}
         <span className="flex-1" />
+        <InvestigateButton issue={issue} className="size-6 opacity-0 group-hover/card:opacity-100" />
         {issue.assignee_type && issue.assignee_id ? (
           <ActorAvatar actorType={issue.assignee_type} actorId={issue.assignee_id} size="sm" />
         ) : null}
