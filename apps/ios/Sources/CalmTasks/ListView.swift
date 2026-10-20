@@ -31,7 +31,7 @@ struct ListView: View {
                                     Task { await store.move(issue, to: resolver.doneKey) }
                                 }
                             }
-                            .listRowInsets(EdgeInsets(top: density == .compact ? 0 : 2, leading: 12, bottom: density == .compact ? 0 : 2, trailing: 12))
+                            .listRowInsets(EdgeInsets(top: 0, leading: 12, bottom: 0, trailing: 12))
                             .swipeActions(edge: .trailing) {
                                 Button("Fatto") { Task { await store.move(issue, to: resolver.doneKey) } }.tint(Calm.green)
                             }
@@ -68,7 +68,7 @@ struct ListView: View {
             }
         }
         .listStyle(.plain)
-        .environment(\.defaultMinListRowHeight, density == .compact ? 34 : 60)
+        .environment(\.defaultMinListRowHeight, density == .compact ? 34 : 48)
         .scrollContentBackground(.hidden)
         .contentMargins(.bottom, 90, for: .scrollContent)
         .refreshable { await store.refresh() }

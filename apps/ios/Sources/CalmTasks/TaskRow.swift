@@ -11,15 +11,15 @@ struct TaskRow: View {
     var onComplete: (() -> Void)?
 
     var body: some View {
-        HStack(spacing: density == .compact ? 8 : 12) {
+        HStack(spacing: density == .compact ? 8 : 10) {
             Button {
                 onComplete?()
             } label: {
                 Circle()
                     .strokeBorder(Calm.priorityColor(issue.priorityValue), lineWidth: 2)
                     .background(Circle().fill(Calm.priorityColor(issue.priorityValue).opacity(0.1)))
-                    .frame(width: density == .compact ? 17 : 22, height: density == .compact ? 17 : 22)
-                    .frame(width: density == .compact ? 30 : 44, height: density == .compact ? 34 : 44)
+                    .frame(width: density == .compact ? 17 : 20, height: density == .compact ? 17 : 20)
+                    .frame(width: density == .compact ? 30 : 34, height: density == .compact ? 34 : 40)
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -34,9 +34,9 @@ struct TaskRow: View {
                 Spacer(minLength: 4)
                 trailing
             } else {
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: 1) {
                     Text(issue.title)
-                        .font(.system(size: 16))
+                        .font(.system(size: 15))
                         .foregroundStyle(Calm.ink)
                         .lineLimit(1)
                     HStack(spacing: 6) {
@@ -54,13 +54,13 @@ struct TaskRow: View {
                             Image(systemName: "sparkles").foregroundStyle(Calm.muted)
                         }
                     }
-                    .font(.system(size: 12))
+                    .font(.system(size: 11.5))
                     .lineLimit(1)
                 }
                 Spacer(minLength: 0)
             }
         }
-        .frame(minHeight: density == .compact ? 34 : 60)
+        .frame(minHeight: density == .compact ? 34 : 48)
         .contentShape(Rectangle())
     }
 
