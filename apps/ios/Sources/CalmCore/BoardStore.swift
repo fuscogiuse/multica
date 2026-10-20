@@ -58,6 +58,8 @@ public final class BoardStore: ObservableObject {
             self.issues = i
             hasLoaded = true
             errorMessage = nil
+        } catch is CancellationError {
+            return
         } catch {
             errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
         }

@@ -102,6 +102,11 @@ final class AppModel: ObservableObject {
     /// researches on its own and answers with a ready-to-apply solution. It never acts live.
     func investigate(_ issue: Issue) async {
         guard let client = auth.client, let store else { return }
+        // The agent runs with the Claude profile of the task's area. Without an area there is no profile to use.
+        guard let project = store.project(issue.projectId), store.company(of: project) != nil else {
+            store.errorMessage = "Questo task non ha un'area (è in \(store.project(issue.projectId)?.title ?? "nessun progetto")), quindi l'AI non sa quale profilo Claude usare. Spostalo in un cliente di un'area e riprova."
+            return
+        }
         do {
             guard let agent = try await client.agents().first(where: { $0.name.lowercased() == "indagine" }) else {
                 store.errorMessage = "Manca l'agente «Indagine». Crealo in Multica."

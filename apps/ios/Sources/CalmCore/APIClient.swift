@@ -76,6 +76,8 @@ public final class APIClient: @unchecked Sendable {
         do {
             (data, response) = try await session.data(for: request)
         } catch {
+            // A refresh replaced by a newer one is not an error the user should see.
+            if (error as? URLError)?.code == .cancelled || error is CancellationError { throw CancellationError() }
             throw APIError.network(error.localizedDescription)
         }
         guard let http = response as? HTTPURLResponse else { throw APIError.network("no response") }
